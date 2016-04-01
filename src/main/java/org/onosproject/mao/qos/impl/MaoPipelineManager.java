@@ -1,5 +1,6 @@
 package org.onosproject.mao.qos.impl;
 
+import com.google.common.util.concurrent.AtomicLongMap;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -8,24 +9,32 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.Service;
 import org.onosproject.core.CoreService;
+import org.onosproject.mao.qos.base.DeviceElement;
+import org.onosproject.mao.qos.intf.MaoPipelineService;
 import org.onosproject.net.Device;
 import org.onosproject.net.Port;
 import org.onosproject.net.device.DeviceEvent;
 import org.onosproject.net.device.DeviceListener;
 import org.onosproject.net.device.DeviceService;
+import org.onosproject.net.flow.DefaultFlowEntry;
+import org.onosproject.net.flow.FlowEntry;
 import org.osgi.service.component.ComponentContext;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Created by mao on 3/27/16.
  */
-@Component
+@Component(immediate = true)
 @Service
-public class MaoPipelineManager {
+public class MaoPipelineManager implements MaoPipelineService {
 
-    LinkedBlockingQueue<String> cmdQueue;
-
+    LinkedBlockingQueue<String> policyQueue;
+    AtomicBoolean needShutdown;
+    ConcurrentMap<String, DeviceElement> DeviceElementMap;
 
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
@@ -39,7 +48,6 @@ public class MaoPipelineManager {
     @Activate
     public void activate(ComponentContext context) {
         coreService.registerApplication("org.onosproject.mao.qos");
-
 
     }
 
@@ -64,7 +72,7 @@ public class MaoPipelineManager {
 
 
 
-    public void Enqueue(){
+    public void pushQosPolicy(){
 
     }
 

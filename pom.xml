@@ -26,7 +26,7 @@
 
     <groupId>org.onosproject</groupId>
     <artifactId>onos-app-Mao-QoS</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.6.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
 
     <description>Mao QoS Controller</description>
@@ -36,6 +36,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <onos.version>1.6.0-SNAPSHOT</onos.version>
         <onos.app.name>onos.app.Mao.QoS</onos.app.name>
+        <onos.app.version>1.0.0-SNAPSHOT</onos.app.version>
         <onos.app.title>Mao QoS Controller</onos.app.title>
         <onos.app.origin>BigMao Radio Station</onos.app.origin>
         <onos.app.category>Core</onos.app.category>
