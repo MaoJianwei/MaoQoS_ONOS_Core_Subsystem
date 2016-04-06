@@ -8,11 +8,13 @@ import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.Service;
+import org.onosproject.core.ApplicationId;
 import org.onosproject.core.CoreService;
 import org.onosproject.mao.qos.api.impl.MaoQosObj;
 import org.onosproject.mao.qos.base.DeviceElement;
 import org.onosproject.mao.qos.intf.MaoPipelineService;
 import org.onosproject.net.Device;
+import org.onosproject.net.DeviceId;
 import org.onosproject.net.Port;
 import org.onosproject.net.device.DeviceEvent;
 import org.onosproject.net.device.DeviceListener;
@@ -20,12 +22,16 @@ import org.onosproject.net.device.DeviceService;
 import org.onosproject.net.flow.DefaultFlowEntry;
 import org.onosproject.net.flow.FlowEntry;
 import org.osgi.service.component.ComponentContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -33,7 +39,10 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -45,10 +54,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Service
 public class MaoPipelineManager implements MaoPipelineService {
 
-    Selector recvSelector;
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
     LinkedBlockingQueue<String> policyQueue;
     AtomicBoolean needShutdown;
-    ConcurrentMap<String, DeviceElement> DeviceElementMap;
+    ConcurrentMap<String, DeviceElement> DeviceElementMap; // "0000000000000001" : DE object
+
+    DeviceCallable deviceCallable;
+    RecvCallable recvCallable;
+    SendCallable sendCallable;
+
+    ExecutorService threadPool;
+
 
     final int SELECT_TIMEOUT = 500;
 
@@ -60,17 +77,58 @@ public class MaoPipelineManager implements MaoPipelineService {
     protected CoreService coreService;
 
 
-
+    private ApplicationId appId;
 
     @Activate
     public void activate(ComponentContext context) {
-        coreService.registerApplication("org.onosproject.mao.qos");
+
+        appId = coreService.registerApplication("org.onosproject.mao.qos");
+
+        log.info("Init member...", appId.id());
+
+        policyQueue = new LinkedBlockingQueue<>();
+        needShutdown = new AtomicBoolean(false);
+        DeviceElementMap = new ConcurrentHashMap<>();
+
+        log.info("Init callable...", appId.id());
+
+        deviceCallable = new DeviceCallable();
+        recvCallable = new RecvCallable();
+        sendCallable = new SendCallable();
+
+        log.info("Submit callable...", appId.id());
+
+        // submit order should be considered!
+        threadPool = Executors.newFixedThreadPool(3);
+        threadPool.submit(recvCallable);
+        threadPool.submit(sendCallable);
+        threadPool.submit(deviceCallable);
+
+
+        log.info("Let's Go!", appId.id());
 
     }
 
     @Deactivate
     public void deactivate() {
+        policyQueue = null;
+        needShutdown = null;
+        DeviceElementMap = null;
 
+        needShutdown.set(true);
+
+
+
+        Thread t = new Thread();
+
+        t.join();
+
+
+
+
+
+
+        threadPool.shutdown();
     }
 
     @Modified
@@ -129,6 +187,7 @@ public class MaoPipelineManager implements MaoPipelineService {
 
     /**
      * Created by mao on 4/1/16.
+     * primary coding OK
      */
     private class DeviceCallable implements Callable {
 
@@ -147,9 +206,12 @@ public class MaoPipelineManager implements MaoPipelineService {
         @Override
         public Integer call(){
 
-            init();
+            if(!init()) {
+                //TODO - report!
+                return -1;
+            }
 
-            while(true){
+            while(true) {
 
                 try {
 
@@ -173,28 +235,27 @@ public class MaoPipelineManager implements MaoPipelineService {
 
                             SocketChannel socketChannel = ((ServerSocketChannel)key.channel()).accept();
                             socketChannel.configureBlocking(true);
-
-
                             BufferedInputStream bufferedInputStream = new BufferedInputStream(Channels.newInputStream(socketChannel));
+
 
                             byte [] dpidBuf = new byte[DPID_MESSAGE_LENGTH];
                             int dpidReadRet = bufferedInputStream.read(dpidBuf, 0, DPID_MESSAGE_LENGTH);// TODO - Attention! - check if it will trigger socketchannel's NonReadableChannelException Exception?
                             String deviceId = new String(dpidBuf);
 
                             Device device = getDeviceByDpid(deviceId);
-
                             if(device == null){
                                 //FIXME
                             }
 
                             DeviceElement deviceElement = new DeviceElement(device, socketChannel);
-
-                            //TODO - register DE into DEmap
+                            DeviceElementMap.put(deviceId, deviceElement);
 
 
                             socketChannel.configureBlocking(false);
-                            //socketChannel.register()
+                            recvCallable.socketChannelRegister(socketChannel, SelectionKey.OP_READ, deviceElement);
 
+                        }else{
+                            //TODO - DEBUG - REPORT
                         }
                     }
                 } catch (IOException e) {
@@ -203,11 +264,6 @@ public class MaoPipelineManager implements MaoPipelineService {
                         break;
                     }
                 }
-
-
-
-
-                break;
             }
 
             destroy();
@@ -216,7 +272,7 @@ public class MaoPipelineManager implements MaoPipelineService {
         }
 
 
-        private void init(){
+        private Boolean init(){
 
             //FIXME - acceptSelector and listenSocketChannel should be put together
 
@@ -224,6 +280,7 @@ public class MaoPipelineManager implements MaoPipelineService {
                 acceptSelector = Selector.open();
             } catch (IOException e) {
                 e.printStackTrace();
+                return false;
             }
 
             try {
@@ -235,21 +292,36 @@ public class MaoPipelineManager implements MaoPipelineService {
 
             } catch (IOException e) {
                 e.printStackTrace();
+                return false;
             }
+            return true;
         }
 
         private void destroy(){
+            try {
+                listenSocketChannel.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
+            try {
+                acceptSelector.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         private Device getDeviceByDpid(String deviceMac){
 
-            Iterable<Device> devices =  deviceService.getDevices();
-            Iterator<Device> iterDevice = devices.iterator();
-            while(iterDevice.hasNext()){
-                ;
-            }
-            return null;
+            DeviceId deviceId = DeviceId.deviceId("of:" + deviceMac);
+            return deviceService.getDevice(deviceId);
+//            Iterable<Device> devices =  deviceService.getDevices();
+//            Iterator<Device> iterDevice = devices.iterator();
+//            while(iterDevice.hasNext()){
+//
+//                Device device = iterDevice.next();
+//                device.annotations().
+//            }
         }
 
     }
@@ -259,8 +331,14 @@ public class MaoPipelineManager implements MaoPipelineService {
      */
     private class RecvCallable implements Callable {
 
+        Selector recvSelector;
+
         public RecvCallable(){
 
+        }
+
+        public void socketChannelRegister(SocketChannel channel, int ops, DeviceElement deviceElement) throws ClosedChannelException {
+            channel.register(recvSelector, ops, deviceElement);
         }
 
         @Override
@@ -326,7 +404,7 @@ public class MaoPipelineManager implements MaoPipelineService {
     /**
      * Created by mao on 4/1/16.
      */
-    public class SendCallable implements Callable {
+    private class SendCallable implements Callable {
 
 
         final int QUEUE_POLL_TIMEOUT = 500;
