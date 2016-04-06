@@ -68,6 +68,7 @@ public class MaoPipelineManager implements MaoPipelineService {
 
 
     final int SELECT_TIMEOUT = 500;
+    final int THREADPOOL_AWAIT_TIMEOUT = 500; // milliseconds
 
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
@@ -111,24 +112,36 @@ public class MaoPipelineManager implements MaoPipelineService {
 
     @Deactivate
     public void deactivate() {
+
+
+        needShutdown.set(true);
+
+        log.info("shutdown flag is set...", appId.id());
+
+        threadPool.shutdown();
+        try {
+            while (!threadPool.awaitTermination(THREADPOOL_AWAIT_TIMEOUT, TimeUnit.MILLISECONDS)) {
+                log.info("wait for threads shutdown...", appId.id());
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        log.info("threads shutdown, destroying...", appId.id());
+
+        //TODO - enhance them, not set null
+        deviceCallable = null;
+        recvCallable = null;
+        sendCallable = null;
+
+        threadPool = null;
+
+
         policyQueue = null;
         needShutdown = null;
         DeviceElementMap = null;
 
-        needShutdown.set(true);
-
-
-
-        Thread t = new Thread();
-
-        t.join();
-
-
-
-
-
-
-        threadPool.shutdown();
+        log.info("Good Bye!", appId.id());
     }
 
     @Modified
@@ -315,13 +328,6 @@ public class MaoPipelineManager implements MaoPipelineService {
 
             DeviceId deviceId = DeviceId.deviceId("of:" + deviceMac);
             return deviceService.getDevice(deviceId);
-//            Iterable<Device> devices =  deviceService.getDevices();
-//            Iterator<Device> iterDevice = devices.iterator();
-//            while(iterDevice.hasNext()){
-//
-//                Device device = iterDevice.next();
-//                device.annotations().
-//            }
         }
 
     }
@@ -397,6 +403,11 @@ public class MaoPipelineManager implements MaoPipelineService {
 
         private void destroy(){
 
+            try {
+                recvSelector.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -406,15 +417,12 @@ public class MaoPipelineManager implements MaoPipelineService {
      */
     private class SendCallable implements Callable {
 
-
         final int QUEUE_POLL_TIMEOUT = 500;
 
 
         public SendCallable(){
 
         }
-
-
 
 
         @Override
@@ -432,10 +440,10 @@ public class MaoPipelineManager implements MaoPipelineService {
                     }
 
 
-
                     if (objPolicy == null){
                         continue;
                     }
+
                     MaoQosObj policy =  (MaoQosObj) objPolicy;
 
 
