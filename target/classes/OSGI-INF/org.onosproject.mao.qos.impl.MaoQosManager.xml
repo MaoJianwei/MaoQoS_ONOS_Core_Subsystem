@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" immediate="true" name="org.onosproject.mao.qos.impl.MaoQosManager" activate="activate" deactivate="deactivate" modified="modify">
-    <implementation class="org.onosproject.mao.qos.impl.MaoQosManager"/>
-    <service servicefactory="false">
-        <provide interface="org.onosproject.mao.qos.intf.MaoQosService"/>
-    </service>
-    <property name="service.pid" value="org.onosproject.mao.qos.impl.MaoQosManager"/>
-    <reference name="coreService" interface="org.onosproject.core.CoreService" cardinality="1..1" policy="static" bind="bindCoreService" unbind="unbindCoreService"/>
-</scr:component>
