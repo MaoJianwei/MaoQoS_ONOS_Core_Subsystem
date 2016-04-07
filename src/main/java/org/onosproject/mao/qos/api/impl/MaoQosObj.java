@@ -23,6 +23,10 @@ public class MaoQosObj {
 
     public static final class Builder {
 
+        public MaoQosObj build(){
+            return new MaoQosObj();
+        }
+
     }
 
 }

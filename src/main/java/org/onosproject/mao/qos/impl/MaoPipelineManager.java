@@ -12,6 +12,7 @@ import org.onosproject.core.ApplicationId;
 import org.onosproject.core.CoreService;
 import org.onosproject.mao.qos.api.impl.MaoQosObj;
 import org.onosproject.mao.qos.base.DeviceElement;
+import org.onosproject.mao.qos.base.MaoQosPolicy;
 import org.onosproject.mao.qos.intf.MaoPipelineService;
 import org.onosproject.net.Device;
 import org.onosproject.net.DeviceId;
@@ -56,7 +57,7 @@ public class MaoPipelineManager implements MaoPipelineService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    LinkedBlockingQueue<String> policyQueue;
+    LinkedBlockingQueue<MaoQosPolicy> policyQueue;
     AtomicBoolean needShutdown;
     ConcurrentMap<String, DeviceElement> DeviceElementMap; // "0000000000000001" : DE object
 
@@ -67,6 +68,7 @@ public class MaoPipelineManager implements MaoPipelineService {
     ExecutorService threadPool;
 
 
+    final int WAIT_INIT_TIMEOUT = 500;
     final int SELECT_TIMEOUT = 500;
     final int THREADPOOL_AWAIT_TIMEOUT = 500; // milliseconds
 
@@ -206,13 +208,15 @@ public class MaoPipelineManager implements MaoPipelineService {
 
         Selector acceptSelector;
         ServerSocketChannel listenSocketChannel;
+        AtomicBoolean initReady;
 
         final int LISTEN_PORT = 5511;
         final int DPID_MESSAGE_LENGTH = 16;
 
         public DeviceCallable(){
 
-
+            initReady = new AtomicBoolean();
+            initReady.set(false);
         }
 
 
@@ -265,7 +269,45 @@ public class MaoPipelineManager implements MaoPipelineService {
 
 
                             socketChannel.configureBlocking(false);
-                            recvCallable.socketChannelRegister(socketChannel, SelectionKey.OP_READ, deviceElement);
+                            try {
+                                recvCallable.socketChannelRegister(socketChannel, SelectionKey.OP_READ, deviceElement);
+
+
+                                MaoQosPolicy policy = new MaoQosPolicy("0000000000000001", "tc qdisc add dev s1-eth1 root handle 1 htb");
+
+                                int length = policy.getQosCmd().length();
+
+                                byte [] lengthByte = new byte[4];
+                                for(int i = 0; i<4; i++){
+                                    lengthByte[i] = (byte) ( ( length >> (i*8) ) & 0xFF );
+                                }
+
+                                StringBuilder stringBuilder = new StringBuilder();
+                                stringBuilder.append(new String(lengthByte));
+                                stringBuilder.append(policy.getQosCmd());
+
+
+                                ByteBuffer buf = ByteBuffer.allocate(stringBuilder.length());
+                                buf.put(stringBuilder.toString().getBytes());
+
+                                boolean bbb = buf.hasRemaining();
+                                buf.flip();
+                                bbb = buf.hasRemaining();
+                                int www = 0;
+                                while(buf.hasRemaining()){
+                                    www += socketChannel.write(buf);
+                                }
+                                bbb = buf.hasRemaining();
+                                int a = 0;
+
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+//                            while (!policyQueue.offer(new MaoQosPolicy("0000000000000001", "sudo tc qdisc add dev s1-eth1 root handle 1 htb"))) {//FIXME - this is for
+//                                ;
+//                            }
+//                            log.info("DeviceCallable, offer Policy", appId.id());
+
 
                         }else{
                             //TODO - DEBUG - REPORT
@@ -307,6 +349,8 @@ public class MaoPipelineManager implements MaoPipelineService {
                 e.printStackTrace();
                 return false;
             }
+
+            initReady.set(true);
             return true;
         }
 
@@ -338,19 +382,30 @@ public class MaoPipelineManager implements MaoPipelineService {
     private class RecvCallable implements Callable {
 
         Selector recvSelector;
+        AtomicBoolean initReady;
 
         public RecvCallable(){
-
+            initReady = new AtomicBoolean();
+            initReady.set(false);
         }
 
-        public void socketChannelRegister(SocketChannel channel, int ops, DeviceElement deviceElement) throws ClosedChannelException {
+        public void socketChannelRegister(SocketChannel channel, int ops, DeviceElement deviceElement) throws ClosedChannelException, InterruptedException {
+            while(!initReady.get()){
+                    Thread.sleep(WAIT_INIT_TIMEOUT);
+            }
+            //recvSelector.wakeup()
             channel.register(recvSelector, ops, deviceElement);
         }
 
         @Override
         public Integer call(){
 
-            init();
+            try {
+                init();
+            } catch (IOException e) {
+                e.printStackTrace();
+                return -1;
+            }
 
             while(true){
 
@@ -373,9 +428,30 @@ public class MaoPipelineManager implements MaoPipelineService {
                         SelectionKey key = keyIter.next();
 
                         if(key.isReadable()){
+                            //TODO - FIXME - attention!! - if OVS shutdown first, will trigger Readable, and read return -1
+
+                            ByteBuffer bufff = ByteBuffer.allocate(100);
+                            int recvrecv = ((SocketChannel)(key.channel())).read(bufff);
+                            int a = 0;
+
+
 
                             DeviceElement deviceElement = (DeviceElement) key.attachment();
                             deviceElement.recvSubmit();
+                        }else if(key.isWritable()){
+
+                            int ops = key.readyOps();
+
+                        }else if(key.isAcceptable()){
+
+                            int ops = key.readyOps();
+
+                        }else if(key.isValid()){
+
+                            int ops = key.readyOps();
+
+                        }else{
+                            int ops = key.readyOps();
                         }
                     }
                 } catch (IOException e) {
@@ -392,13 +468,12 @@ public class MaoPipelineManager implements MaoPipelineService {
         }
 
 
-        private void init(){
+        private void init() throws IOException {
 
-            try {
-                recvSelector = Selector.open();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+
+            recvSelector = Selector.open();
+
+            initReady.set(true);
         }
 
         private void destroy(){
@@ -418,10 +493,13 @@ public class MaoPipelineManager implements MaoPipelineService {
     private class SendCallable implements Callable {
 
         final int QUEUE_POLL_TIMEOUT = 500;
+        AtomicBoolean initReady;
 
 
         public SendCallable(){
 
+            initReady = new AtomicBoolean();
+            initReady.set(false);
         }
 
 
@@ -435,6 +513,8 @@ public class MaoPipelineManager implements MaoPipelineService {
 
                     Object objPolicy = policyQueue.poll(QUEUE_POLL_TIMEOUT, TimeUnit.MILLISECONDS);
 
+
+
                     if(needShutdown.get()) {
                         break;
                     }
@@ -444,31 +524,41 @@ public class MaoPipelineManager implements MaoPipelineService {
                         continue;
                     }
 
-                    MaoQosObj policy =  (MaoQosObj) objPolicy;
+                    MaoQosPolicy policy =  (MaoQosPolicy) objPolicy;
 
+                    log.info("SendCallable, Get a Policy!", appId.id());
 
-
-                    Object objDeviceElement = DeviceElementMap.getOrDefault(policy.getDevice(),null);
-                    if(objDeviceElement == null){
+                    //FIXME - below is for test
+                    Object objDeviceElement = null;
+                    do {
+                        objDeviceElement = DeviceElementMap.getOrDefault(policy.getDeviceId(), null);
+                    }while(objDeviceElement == null);
+                    if(objDeviceElement == null){ // TODO - put Policy back for ONOS wait, if nessesary, add countTimeout
                         continue;
                     }
                     DeviceElement deviceElement = (DeviceElement) objDeviceElement;
 
                     SocketChannel socketChannel = deviceElement.getSocketChannel();
 
+                    log.info("SendCallable, Get socket channel!", appId.id());
 
                     StringBuilder cmd = encapsulate(policy);
 
                     ByteBuffer buf = ByteBuffer.allocate(cmd.length());
                     buf.put(cmd.toString().getBytes());
 
+                    log.info("SendCallable, Get cmd and buf ready!", appId.id());
+
 
                     try {
 
+                        log.info("SendCallable, send cmd...", appId.id());
                         socketChannel.write(buf);
+                        log.debug("SendCallable, send cmd OK!", appId.id());
 
                     } catch (IOException e) {
                         e.printStackTrace();
+                        log.info("SendCallable, send cmd Wrong!", appId.id());
                         //TODO - Mao
                     }
 
@@ -487,16 +577,29 @@ public class MaoPipelineManager implements MaoPipelineService {
         }
 
         private void init(){
-
+            initReady.set(true);
         }
 
         private void destroy(){
 
         }
 
-        private StringBuilder encapsulate(MaoQosObj policy){
-            //TODO
-            return new StringBuilder("");
+        private StringBuilder encapsulate(MaoQosPolicy policy){
+
+            //FIXME - below is test code
+
+            int length = policy.getQosCmd().length();
+
+            byte [] lengthByte = new byte[4];
+            for(int i = 0; i<4; i++){
+                lengthByte[i] = (byte) ( ( length >> (i*8) ) & 0xFF );
+            }
+
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append(new String(lengthByte));
+            stringBuilder.append(policy.getQosCmd());
+
+            return stringBuilder;
         }
     }
 
