@@ -68,9 +68,9 @@ public class MaoPipelineManager implements MaoPipelineService {
     ExecutorService threadPool;
 
 
-    final int WAIT_INIT_TIMEOUT = 500;
-    final int SELECT_TIMEOUT = 500;
-    final int THREADPOOL_AWAIT_TIMEOUT = 500; // milliseconds
+    public static final int WAIT_INIT_TIMEOUT = 500;
+    public static final int SELECT_TIMEOUT = 500;
+    public static final int THREADPOOL_AWAIT_TIMEOUT = 500; // milliseconds
 
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
@@ -224,7 +224,7 @@ public class MaoPipelineManager implements MaoPipelineService {
         public Integer call(){
 
             if(!init()) {
-                //TODO - report!
+                log.error("DeviceCallable init fail!", appId.id());
                 return -1;
             }
 
@@ -264,7 +264,7 @@ public class MaoPipelineManager implements MaoPipelineService {
                                 //FIXME
                             }
 
-                            DeviceElement deviceElement = new DeviceElement(device, socketChannel);
+                            DeviceElement deviceElement = new DeviceElement(device, deviceId, socketChannel);
                             DeviceElementMap.put(deviceId, deviceElement);
 
 
@@ -272,7 +272,7 @@ public class MaoPipelineManager implements MaoPipelineService {
                             try {
                                 recvCallable.socketChannelRegister(socketChannel, SelectionKey.OP_READ, deviceElement);
 
-
+                                // below is test code
                                 MaoQosPolicy policy = new MaoQosPolicy("0000000000000001", "tc qdisc add dev s1-eth1 root handle 1 htb");
 
                                 int length = policy.getQosCmd().length();
@@ -299,6 +299,7 @@ public class MaoPipelineManager implements MaoPipelineService {
                                 }
                                 bbb = buf.hasRemaining();
                                 int a = 0;
+                                // above is test code
 
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
@@ -368,9 +369,9 @@ public class MaoPipelineManager implements MaoPipelineService {
             }
         }
 
-        private Device getDeviceByDpid(String deviceMac){
+        private Device getDeviceByDpid(String dpid){
 
-            DeviceId deviceId = DeviceId.deviceId("of:" + deviceMac);
+            DeviceId deviceId = DeviceId.deviceId("of:" + dpid);
             return deviceService.getDevice(deviceId);
         }
 
@@ -393,8 +394,9 @@ public class MaoPipelineManager implements MaoPipelineService {
             while(!initReady.get()){
                     Thread.sleep(WAIT_INIT_TIMEOUT);
             }
-            //recvSelector.wakeup()
+            recvSelector.wakeup();
             channel.register(recvSelector, ops, deviceElement);
+            int a = 0;
         }
 
         @Override
@@ -428,12 +430,13 @@ public class MaoPipelineManager implements MaoPipelineService {
                         SelectionKey key = keyIter.next();
 
                         if(key.isReadable()){
-                            //TODO - FIXME - attention!! - if OVS shutdown first, will trigger Readable, and read return -1
 
-                            ByteBuffer bufff = ByteBuffer.allocate(100);
-                            int recvrecv = ((SocketChannel)(key.channel())).read(bufff);
-                            int a = 0;
+                            //attention!! - if OVS shutdown first, will trigger Readable, and read return -1
 
+                            boolean connected = ((SocketChannel)(key.channel())).isConnected();
+                            ByteBuffer bbb = ByteBuffer.allocate(100);
+                            int ret  = ((SocketChannel)(key.channel())).read(bbb);
+                            connected = ((SocketChannel)(key.channel())).isConnected();
 
 
                             DeviceElement deviceElement = (DeviceElement) key.attachment();
