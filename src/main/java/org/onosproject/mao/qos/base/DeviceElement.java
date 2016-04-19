@@ -7,14 +7,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.SocketChannel;
+import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -24,22 +30,26 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class DeviceElement {
 
-    private final Logger log;
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
 
     Device device;
     String dpid;
 
-    ExecutorService executorService;
+    private static final ExecutorService executorService = new ThreadPoolExecutor(0, 10, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
+
     SocketChannel socketChannel;
     BufferedInputStream recvInputStream;
     AtomicReference<State> stateMachine;
+    Set<String> ports;
 
     enum State{
         /**
          * is initing, DE should not be used
          */
         INIT,
+
+        INIT_WAIT_PORT,
 
         /**
          * DE ready for use
@@ -62,17 +72,15 @@ public class DeviceElement {
         stateMachine = new AtomicReference<State>();
         stateMachine.set(State.INIT);
 
-        log = LoggerFactory.getLogger(getClass());
-
 
         this.device = device;
         this.dpid = dpid;
         this.socketChannel = socketChannel;
-        executorService = Executors.newSingleThreadExecutor();
+        this.ports = Collections.emptySet();
 
         recvInputStream = new BufferedInputStream(Channels.newInputStream(socketChannel));
 
-        stateMachine.set(State.STANDBY);
+        stateMachine.set(State.INIT_WAIT_PORT);
     }
 
     public void removeDeviceElement(){
@@ -124,6 +132,37 @@ public class DeviceElement {
         public Integer call(){
 
             //TODO - read socketchannel
+
+            switch(stateMachine.get()){
+                case INIT:
+
+                    break;
+
+                case INIT_WAIT_PORT:
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(Channels.newInputStream(socketChannel)));
+                    try {
+                        String dpPorts = bufferedReader.readLine();
+                        log.info("{} get ports info: {}", dpid, dpPorts);
+
+                        String [] dpPortsList = dpPorts.split(",");
+                        for(String str : dpPortsList){
+                            ports.add(str);
+                        }
+
+                        int a = 0;
+                        stateMachine.set(State.STANDBY);
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+
+                case STANDBY:
+                case DESTROY:
+                case FINISH:
+                default:
+
+            }
 
             return 0;
 //            try {

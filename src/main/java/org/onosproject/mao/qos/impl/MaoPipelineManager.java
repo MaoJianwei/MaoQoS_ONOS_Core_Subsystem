@@ -10,7 +10,6 @@ import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.Service;
 import org.onosproject.core.ApplicationId;
 import org.onosproject.core.CoreService;
-import org.onosproject.mao.qos.api.impl.MaoQosObj;
 import org.onosproject.mao.qos.base.DeviceElement;
 import org.onosproject.mao.qos.base.MaoQosPolicy;
 import org.onosproject.mao.qos.intf.MaoPipelineService;
@@ -29,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ClosedChannelException;
@@ -38,7 +36,6 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -271,44 +268,39 @@ public class MaoPipelineManager implements MaoPipelineService {
                             socketChannel.configureBlocking(false);
                             try {
                                 recvCallable.socketChannelRegister(socketChannel, SelectionKey.OP_READ, deviceElement);
-
-                                // below is test code
-                                MaoQosPolicy policy = new MaoQosPolicy("0000000000000001", "tc qdisc add dev s1-eth1 root handle 1 htb");
-
-                                int length = policy.getQosCmd().length();
-
-                                byte [] lengthByte = new byte[4];
-                                for(int i = 0; i<4; i++){
-                                    lengthByte[i] = (byte) ( ( length >> (i*8) ) & 0xFF );
-                                }
-
-                                StringBuilder stringBuilder = new StringBuilder();
-                                stringBuilder.append(new String(lengthByte));
-                                stringBuilder.append(policy.getQosCmd());
-
-
-                                ByteBuffer buf = ByteBuffer.allocate(stringBuilder.length());
-                                buf.put(stringBuilder.toString().getBytes());
-
-                                boolean bbb = buf.hasRemaining();
-                                buf.flip();
-                                bbb = buf.hasRemaining();
-                                int www = 0;
-                                while(buf.hasRemaining()){
-                                    www += socketChannel.write(buf);
-                                }
-                                bbb = buf.hasRemaining();
-                                int a = 0;
-                                // above is test code
-
+//
+//                                // below is test code
+//                                MaoQosPolicy policy = new MaoQosPolicy("0000000000000001", "tc qdisc add dev s1-eth1 root handle 1 htb");
+//
+//                                int length = policy.getQosCmd().length();
+//
+//                                byte [] lengthByte = new byte[4];
+//                                for(int i = 0; i<4; i++){
+//                                    lengthByte[i] = (byte) ( ( length >> (i*8) ) & 0xFF );
+//                                }
+//
+//                                StringBuilder stringBuilder = new StringBuilder();
+//                                stringBuilder.append(new String(lengthByte));
+//                                stringBuilder.append(policy.getQosCmd());
+//
+//
+//                                ByteBuffer buf = ByteBuffer.allocate(stringBuilder.length());
+//                                buf.put(stringBuilder.toString().getBytes());
+//
+//                                boolean bbb = buf.hasRemaining();
+//                                buf.flip();
+//                                bbb = buf.hasRemaining();
+//                                int www = 0;
+//                                while(buf.hasRemaining()){
+//                                    www += socketChannel.write(buf);
+//                                }
+//                                bbb = buf.hasRemaining();
+//                                int a = 0;
+//                                // above is test code
+//
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
-//                            while (!policyQueue.offer(new MaoQosPolicy("0000000000000001", "sudo tc qdisc add dev s1-eth1 root handle 1 htb"))) {//FIXME - this is for
-//                                ;
-//                            }
-//                            log.info("DeviceCallable, offer Policy", appId.id());
-
 
                         }else{
                             //TODO - DEBUG - REPORT

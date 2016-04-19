@@ -1,6 +1,5 @@
 package org.onosproject.mao.qos.base;
 
-import org.onosproject.mao.qos.api.impl.MaoQosObj;
 import org.onosproject.net.Device;
 
 /**
