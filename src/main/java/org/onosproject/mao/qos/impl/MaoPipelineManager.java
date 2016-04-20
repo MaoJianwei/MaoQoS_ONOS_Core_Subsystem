@@ -1,6 +1,5 @@
 package org.onosproject.mao.qos.impl;
 
-import com.google.common.util.concurrent.AtomicLongMap;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -15,12 +14,7 @@ import org.onosproject.mao.qos.base.MaoQosPolicy;
 import org.onosproject.mao.qos.intf.MaoPipelineService;
 import org.onosproject.net.Device;
 import org.onosproject.net.DeviceId;
-import org.onosproject.net.Port;
-import org.onosproject.net.device.DeviceEvent;
-import org.onosproject.net.device.DeviceListener;
 import org.onosproject.net.device.DeviceService;
-import org.onosproject.net.flow.DefaultFlowEntry;
-import org.onosproject.net.flow.FlowEntry;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +29,9 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -56,7 +52,7 @@ public class MaoPipelineManager implements MaoPipelineService {
 
     LinkedBlockingQueue<MaoQosPolicy> policyQueue;
     AtomicBoolean needShutdown;
-    ConcurrentMap<String, DeviceElement> DeviceElementMap; // "0000000000000001" : DE object
+    ConcurrentMap<String, DeviceElement> deviceElementMap; // "0000000000000001" : DE object
 
     DeviceCallable deviceCallable;
     RecvCallable recvCallable;
@@ -88,7 +84,7 @@ public class MaoPipelineManager implements MaoPipelineService {
 
         policyQueue = new LinkedBlockingQueue<>();
         needShutdown = new AtomicBoolean(false);
-        DeviceElementMap = new ConcurrentHashMap<>();
+        deviceElementMap = new ConcurrentHashMap<>();
 
         log.info("Init callable...", appId.id());
 
@@ -106,7 +102,6 @@ public class MaoPipelineManager implements MaoPipelineService {
 
 
         log.info("Let's Go!", appId.id());
-
     }
 
     @Deactivate
@@ -128,17 +123,31 @@ public class MaoPipelineManager implements MaoPipelineService {
 
         log.info("threads shutdown, destroying...", appId.id());
 
+
+        log.info("closing DeviceElement thread pool...", appId.id());
+        DeviceElement.closeThreadPool(true);
+        log.info("closing DeviceElement thread pool OK!", appId.id());
+
+        for(Map.Entry<String, DeviceElement> ele : deviceElementMap.entrySet()){
+            ele.getValue().removeDeviceElement();
+        }
+        deviceElementMap.clear();
+        deviceElementMap = null;
+
+
         //TODO - enhance them, not set null
         deviceCallable = null;
         recvCallable = null;
         sendCallable = null;
 
+
         threadPool = null;
 
 
+        policyQueue.clear();
         policyQueue = null;
+
         needShutdown = null;
-        DeviceElementMap = null;
 
         log.info("Good Bye!", appId.id());
     }
@@ -149,52 +158,10 @@ public class MaoPipelineManager implements MaoPipelineService {
     }
 
 
-    private void startModule() {
-
-    }
-
-    private void shutdownModule() {
-
-    }
-
-
 
     public void pushQosPolicy(){
 
     }
-
-
-
-
-
-
-
-
-//    private class InnerDeviceListener implements DeviceListener {
-//
-//
-//        @Override
-//        public void event(DeviceEvent ev) {
-//
-//            switch (ev.type()) {
-//                case DEVICE_ADDED:
-//                case DEVICE_UPDATED:
-//                case DEVICE_REMOVED:
-//                case DEVICE_SUSPENDED:
-//                case DEVICE_AVAILABILITY_CHANGED:
-//                    Device device = ev.subject();
-//                    DeviceEvent.Type type = ev.type();
-//                    Port port = ev.port();
-//                    long time = ev.time();
-//                    String str = ev.toString();
-//                    break;
-//                default:
-//                    break;
-//
-//            }
-//
-//        }
-//    }
 
 
     /**
@@ -219,6 +186,8 @@ public class MaoPipelineManager implements MaoPipelineService {
 
         @Override
         public Integer call(){
+
+            Thread.currentThread().setName("DeviceCallable");
 
             if(!init()) {
                 log.error("DeviceCallable init fail!", appId.id());
@@ -249,55 +218,30 @@ public class MaoPipelineManager implements MaoPipelineService {
 
                             SocketChannel socketChannel = ((ServerSocketChannel)key.channel()).accept();
                             socketChannel.configureBlocking(true);
-                            BufferedInputStream bufferedInputStream = new BufferedInputStream(Channels.newInputStream(socketChannel));
+//                            BufferedInputStream bufferedInputStream = new BufferedInputStream(Channels.newInputStream(socketChannel));
 
+                            ByteBuffer deviceIdByteBuffer = ByteBuffer.allocate(DPID_MESSAGE_LENGTH);
+                            int retret = socketChannel.read(deviceIdByteBuffer);
+                            if(retret == -1){
+                                keyIter.remove();
+                                continue;
+                            }
 
-                            byte [] dpidBuf = new byte[DPID_MESSAGE_LENGTH];
-                            int dpidReadRet = bufferedInputStream.read(dpidBuf, 0, DPID_MESSAGE_LENGTH);// TODO - Attention! - check if it will trigger socketchannel's NonReadableChannelException Exception?
-                            String deviceId = new String(dpidBuf);
+                            // TODO - Attention! - check if it will trigger socketchannel's NonReadableChannelException Exception?
 
+                            String deviceId = new String(deviceIdByteBuffer.array());
                             Device device = getDeviceByDpid(deviceId);
                             if(device == null){
                                 //FIXME
                             }
 
                             DeviceElement deviceElement = new DeviceElement(device, deviceId, socketChannel);
-                            DeviceElementMap.put(deviceId, deviceElement);
+                            deviceElementMap.put(deviceId, deviceElement);
 
 
                             socketChannel.configureBlocking(false);
                             try {
                                 recvCallable.socketChannelRegister(socketChannel, SelectionKey.OP_READ, deviceElement);
-//
-//                                // below is test code
-//                                MaoQosPolicy policy = new MaoQosPolicy("0000000000000001", "tc qdisc add dev s1-eth1 root handle 1 htb");
-//
-//                                int length = policy.getQosCmd().length();
-//
-//                                byte [] lengthByte = new byte[4];
-//                                for(int i = 0; i<4; i++){
-//                                    lengthByte[i] = (byte) ( ( length >> (i*8) ) & 0xFF );
-//                                }
-//
-//                                StringBuilder stringBuilder = new StringBuilder();
-//                                stringBuilder.append(new String(lengthByte));
-//                                stringBuilder.append(policy.getQosCmd());
-//
-//
-//                                ByteBuffer buf = ByteBuffer.allocate(stringBuilder.length());
-//                                buf.put(stringBuilder.toString().getBytes());
-//
-//                                boolean bbb = buf.hasRemaining();
-//                                buf.flip();
-//                                bbb = buf.hasRemaining();
-//                                int www = 0;
-//                                while(buf.hasRemaining()){
-//                                    www += socketChannel.write(buf);
-//                                }
-//                                bbb = buf.hasRemaining();
-//                                int a = 0;
-//                                // above is test code
-//
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
@@ -305,6 +249,7 @@ public class MaoPipelineManager implements MaoPipelineService {
                         }else{
                             //TODO - DEBUG - REPORT
                         }
+                        keyIter.remove();
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -337,7 +282,6 @@ public class MaoPipelineManager implements MaoPipelineService {
                 listenSocketChannel.socket().bind(new InetSocketAddress(LISTEN_PORT));
                 listenSocketChannel.configureBlocking(false);
                 listenSocketChannel.register(acceptSelector, SelectionKey.OP_ACCEPT);
-
             } catch (IOException e) {
                 e.printStackTrace();
                 return false;
@@ -348,6 +292,9 @@ public class MaoPipelineManager implements MaoPipelineService {
         }
 
         private void destroy(){
+
+            initReady.set(false);
+
             try {
                 listenSocketChannel.close();
             } catch (IOException e) {
@@ -378,8 +325,7 @@ public class MaoPipelineManager implements MaoPipelineService {
         AtomicBoolean initReady;
 
         public RecvCallable(){
-            initReady = new AtomicBoolean();
-            initReady.set(false);
+            initReady = new AtomicBoolean(false);
         }
 
         public void socketChannelRegister(SocketChannel channel, int ops, DeviceElement deviceElement) throws ClosedChannelException, InterruptedException {
@@ -394,12 +340,14 @@ public class MaoPipelineManager implements MaoPipelineService {
         @Override
         public Integer call(){
 
-            try {
-                init();
-            } catch (IOException e) {
-                e.printStackTrace();
+            Thread.currentThread().setName("RecvCallable");
+
+            if(!init()){
+
+                log.error("RecvCallable init fail!", appId.id());
                 return -1;
             }
+
 
             while(true){
 
@@ -412,6 +360,11 @@ public class MaoPipelineManager implements MaoPipelineService {
                     }
 
                     if(readyCount == 0){
+                        try {
+                            Thread.sleep(100);// for socketchannel.register
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                         continue;
                     }
 
@@ -426,13 +379,10 @@ public class MaoPipelineManager implements MaoPipelineService {
                             //attention!! - if OVS shutdown first, will trigger Readable, and read return -1
 
                             boolean connected = ((SocketChannel)(key.channel())).isConnected();
-                            ByteBuffer bbb = ByteBuffer.allocate(100);
-                            int ret  = ((SocketChannel)(key.channel())).read(bbb);
-                            connected = ((SocketChannel)(key.channel())).isConnected();
-
 
                             DeviceElement deviceElement = (DeviceElement) key.attachment();
                             deviceElement.recvSubmit();
+
                         }else if(key.isWritable()){
 
                             int ops = key.readyOps();
@@ -448,6 +398,7 @@ public class MaoPipelineManager implements MaoPipelineService {
                         }else{
                             int ops = key.readyOps();
                         }
+                        keyIter.remove();
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -463,15 +414,22 @@ public class MaoPipelineManager implements MaoPipelineService {
         }
 
 
-        private void init() throws IOException {
+        private boolean init() {
 
-
-            recvSelector = Selector.open();
+            try {
+                recvSelector = Selector.open();
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
+            }
 
             initReady.set(true);
+            return true;
         }
 
         private void destroy(){
+
+            initReady.set(false);
 
             try {
                 recvSelector.close();
@@ -493,13 +451,14 @@ public class MaoPipelineManager implements MaoPipelineService {
 
         public SendCallable(){
 
-            initReady = new AtomicBoolean();
-            initReady.set(false);
+            initReady = new AtomicBoolean(false);
         }
 
 
         @Override
         public Integer call(){
+
+            Thread.currentThread().setName("SendCallable");
 
             init();
 
@@ -507,7 +466,6 @@ public class MaoPipelineManager implements MaoPipelineService {
                 try {
 
                     Object objPolicy = policyQueue.poll(QUEUE_POLL_TIMEOUT, TimeUnit.MILLISECONDS);
-
 
 
                     if(needShutdown.get()) {
@@ -526,8 +484,9 @@ public class MaoPipelineManager implements MaoPipelineService {
                     //FIXME - below is for test
                     Object objDeviceElement = null;
                     do {
-                        objDeviceElement = DeviceElementMap.getOrDefault(policy.getDeviceId(), null);
+                        objDeviceElement = deviceElementMap.getOrDefault(policy.getDeviceId(), null);
                     }while(objDeviceElement == null);
+
                     if(objDeviceElement == null){ // TODO - put Policy back for ONOS wait, if nessesary, add countTimeout
                         continue;
                     }
@@ -571,12 +530,12 @@ public class MaoPipelineManager implements MaoPipelineService {
             return 0;
         }
 
-        private void init(){
+        private void init() {
             initReady.set(true);
         }
 
-        private void destroy(){
-
+        private void destroy() {
+            initReady.set(false);
         }
 
         private StringBuilder encapsulate(MaoQosPolicy policy){
@@ -597,5 +556,4 @@ public class MaoPipelineManager implements MaoPipelineService {
             return stringBuilder;
         }
     }
-
 }

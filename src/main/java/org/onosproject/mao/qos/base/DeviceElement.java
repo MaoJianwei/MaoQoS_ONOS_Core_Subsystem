@@ -10,10 +10,12 @@ import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.SocketChannel;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -32,18 +34,7 @@ public class DeviceElement {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-
-    Device device;
-    String dpid;
-
-    private static final ExecutorService executorService = new ThreadPoolExecutor(0, 10, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
-
-    SocketChannel socketChannel;
-    BufferedInputStream recvInputStream;
-    AtomicReference<State> stateMachine;
-    Set<String> ports;
-
-    enum State{
+    enum State {
         /**
          * is initing, DE should not be used
          */
@@ -67,6 +58,33 @@ public class DeviceElement {
         FINISH
     }
 
+
+    Device device;
+    String dpid;
+
+    private static final ExecutorService executorService = new ThreadPoolExecutor(0, 10, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
+
+    SocketChannel socketChannel;
+    BufferedInputStream recvInputStream;
+    AtomicReference<State> stateMachine;
+    Set<String> ports;
+
+
+    public static void closeThreadPool(boolean isTerminate) {
+
+        executorService.shutdown();
+        if (isTerminate && !(executorService.isShutdown())) {
+            executorService.shutdownNow();
+        }
+
+        try {
+            while (!executorService.awaitTermination(MaoPipelineManager.THREADPOOL_AWAIT_TIMEOUT, TimeUnit.MILLISECONDS)) {
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
     public DeviceElement(Device device, String dpid, SocketChannel socketChannel) {
 
         stateMachine = new AtomicReference<State>();
@@ -76,14 +94,14 @@ public class DeviceElement {
         this.device = device;
         this.dpid = dpid;
         this.socketChannel = socketChannel;
-        this.ports = Collections.emptySet();
+        this.ports = new HashSet<>();
 
         recvInputStream = new BufferedInputStream(Channels.newInputStream(socketChannel));
 
         stateMachine.set(State.INIT_WAIT_PORT);
     }
 
-    public void removeDeviceElement(){
+    public void removeDeviceElement() {
         stateMachine.set(State.DESTROY);
 
         try {
@@ -98,58 +116,62 @@ public class DeviceElement {
             e.printStackTrace();
         }
 
-        executorService.shutdown();
-        try {
-            while (!executorService.awaitTermination(MaoPipelineManager.THREADPOOL_AWAIT_TIMEOUT, TimeUnit.MILLISECONDS)) {
-                log.info("DeviceElement wait for threads shutdown...");
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        //dpid
+        ports.clear();
     }
 
-    public SocketChannel getSocketChannel(){
+    public SocketChannel getSocketChannel() {
         return socketChannel;
     }
 
 
-    public void recvSubmit(){
+    public void recvSubmit() {
         executorService.submit(new RecvTask());
     }
 
-    private class RecvTask implements Callable{
 
+    private class RecvTask implements Callable {
 
-
-        public RecvTask(){
+        public RecvTask() {
 
         }
 
-
         @Override
-        public Integer call(){
+        public Integer call() {
 
             //TODO - read socketchannel
 
-            switch(stateMachine.get()){
+            switch (stateMachine.get()) {
                 case INIT:
 
                     break;
 
                 case INIT_WAIT_PORT:
-                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(Channels.newInputStream(socketChannel)));
+
+
                     try {
-                        String dpPorts = bufferedReader.readLine();
+                        StringBuilder portsBuilder = new StringBuilder();
+                        ByteBuffer byteBuffer = ByteBuffer.allocate(1);
+
+                        while (true) {
+                            byteBuffer.clear();
+                            socketChannel.read(byteBuffer);
+
+                            byte[] one = byteBuffer.array();
+                            if (one[0] != '\n') {
+                                portsBuilder.append(new String(one));
+                            } else {
+                                break;
+                            }
+                        }
+
+                        String dpPorts = portsBuilder.toString();
                         log.info("{} get ports info: {}", dpid, dpPorts);
 
-                        String [] dpPortsList = dpPorts.split(",");
-                        for(String str : dpPortsList){
+                        String[] dpPortsList = dpPorts.split(",");
+                        for (String str : dpPortsList) {
                             ports.add(str);
                         }
 
-                        int a = 0;
                         stateMachine.set(State.STANDBY);
 
                     } catch (IOException e) {
@@ -165,20 +187,6 @@ public class DeviceElement {
             }
 
             return 0;
-//            try {
-//                byte [] lenBuf = new byte[1];
-//                int lenRet = 0;
-//                lenRet = recvInputStream.read(lenBuf, 0, 1);
-//                if(lenRet == 0){
-//                    removeDeviceElement();
-//                }
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//
-//
-//
-//            return 0;
         }
 
     }
