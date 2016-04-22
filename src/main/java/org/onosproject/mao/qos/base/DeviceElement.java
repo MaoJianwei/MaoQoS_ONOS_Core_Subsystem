@@ -2,39 +2,34 @@ package org.onosproject.mao.qos.base;
 
 import org.onosproject.mao.qos.impl.MaoPipelineManager;
 import org.onosproject.net.Device;
-import org.onosproject.store.service.AtomicValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Created by mao on 4/1/16.
  */
-public class DeviceElement {
+public final class DeviceElement {
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private static final Logger log = LoggerFactory.getLogger(DeviceElement.class);
 
-    enum State {
+    public enum State {
         /**
          * is initing, DE should not be used
          */
@@ -48,6 +43,11 @@ public class DeviceElement {
         STANDBY,
 
         /**
+         * socketchannel down, DE should not be used
+         */
+//        SOCKET_DOWN,
+
+        /**
          * is going to destroy, DE should not be used
          */
         DESTROY,
@@ -59,42 +59,70 @@ public class DeviceElement {
     }
 
 
-    Device device;
-    String dpid;
+    private static final ExecutorService executorService = Executors.newCachedThreadPool(); //new ThreadPoolExecutor(0, 10, 10L, TimeUnit.SECONDS, new SynchronousQueue<>());
 
-    private static final ExecutorService executorService = new ThreadPoolExecutor(0, 10, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
 
-    SocketChannel socketChannel;
-    BufferedInputStream recvInputStream;
-    AtomicReference<State> stateMachine;
-    Set<String> ports;
+    private MaoPipelineManager boss;
+    private Device device;
+    private String dpid;
 
+    private SocketChannel socketChannel;
+    private BufferedInputStream recvInputStream;
+    private AtomicReference<State> stateMachine;
+    private Map<Integer, String> portMap;
+
+    public State getState() {
+        return stateMachine.get();
+    }
+
+    public Map<Integer, String> getPortMap() {
+        return portMap;
+    }
+
+    public static int getActiveCount(){
+        return ((ThreadPoolExecutor)executorService).getActiveCount();
+    }
+    public static int getPoolSize(){
+        return ((ThreadPoolExecutor)executorService).getPoolSize();
+    }
+    public static long getTaskCount(){
+        return ((ThreadPoolExecutor)executorService).getTaskCount();
+    }
+    public static long getCompletedTaskCount(){
+        return ((ThreadPoolExecutor)executorService).getCompletedTaskCount();
+    }
 
     public static void closeThreadPool(boolean isTerminate) {
 
         executorService.shutdown();
+        log.info("executorService shutdown set");
         if (isTerminate && !(executorService.isShutdown())) {
             executorService.shutdownNow();
+            log.info("executorService shutdown NOW set");
         }
 
+        int count = 10;
         try {
-            while (!executorService.awaitTermination(MaoPipelineManager.THREADPOOL_AWAIT_TIMEOUT, TimeUnit.MILLISECONDS)) {
+            while (!executorService.awaitTermination(MaoPipelineManager.THREADPOOL_AWAIT_TIMEOUT, TimeUnit.MILLISECONDS) && (count--) > 0) {
+                log.info("executorService wait for Termination...");
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
+            log.warn("executorService wait for Termination Exception!!!");
         }
+        log.info("executorService is going down");
     }
 
-    public DeviceElement(Device device, String dpid, SocketChannel socketChannel) {
+    public DeviceElement(Device device, String dpid, SocketChannel socketChannel, MaoPipelineManager boss) {
 
-        stateMachine = new AtomicReference<State>();
-        stateMachine.set(State.INIT);
+        stateMachine = new AtomicReference<>(State.INIT);
 
-
+        this.boss = boss;
         this.device = device;
         this.dpid = dpid;
         this.socketChannel = socketChannel;
-        this.ports = new HashSet<>();
+        this.portMap = new HashMap<>();
+
 
         recvInputStream = new BufferedInputStream(Channels.newInputStream(socketChannel));
 
@@ -102,21 +130,32 @@ public class DeviceElement {
     }
 
     public void removeDeviceElement() {
+
+        if (stateMachine.get() == State.FINISH) {
+            log.error("removeDeviceElement ERROR, {} has been FINISH !!!", dpid);
+            return;
+        }
+
         stateMachine.set(State.DESTROY);
 
         try {
             recvInputStream.close();
+            log.info("{} close recvInputStream!  when {}", dpid, stateMachine.get());
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         try {
             socketChannel.close();
+            log.info("{} close socket!  when {}", dpid, stateMachine.get());
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        ports.clear();
+        portMap.clear();
+        log.error("{} clear ports!  when {}", dpid, stateMachine.get());
+
+        stateMachine.set(State.FINISH);
     }
 
     public SocketChannel getSocketChannel() {
@@ -124,15 +163,17 @@ public class DeviceElement {
     }
 
 
-    public void recvSubmit() {
-        executorService.submit(new RecvTask());
+    public void recvSubmit(SelectionKey key) {
+        executorService.submit(new RecvTask(key));
     }
 
 
     private class RecvTask implements Callable {
 
-        public RecvTask() {
+        private final SelectionKey key;
 
+        public RecvTask(SelectionKey key) {
+            this.key = key;
         }
 
         @Override
@@ -143,10 +184,11 @@ public class DeviceElement {
             switch (stateMachine.get()) {
                 case INIT:
 
+                    log.error("DE is INIT !!!");
+
                     break;
 
                 case INIT_WAIT_PORT:
-
 
                     try {
                         StringBuilder portsBuilder = new StringBuilder();
@@ -154,9 +196,22 @@ public class DeviceElement {
 
                         while (true) {
                             byteBuffer.clear();
-                            socketChannel.read(byteBuffer);
+                            int ret = socketChannel.read(byteBuffer);
+                            if (ret == -1) {
+                                log.info("{} receive -1, when {}", dpid, stateMachine.get());
+                                stateMachine.set(State.DESTROY);
+                                recvSubmit(key);
+                                return -1;
+                            } else if (ret == 0) {
+                                //FIXME should not ret == 0
+                                log.error("{} receive 0, when {}", dpid, stateMachine.get());
+                                stateMachine.set(State.DESTROY);
+                                recvSubmit(key);
+                                return -2;
+                            }
 
                             byte[] one = byteBuffer.array();
+//                            log.info("{} get byte {}, when {}", dpid, new String(one), stateMachine.get());
                             if (one[0] != '\n') {
                                 portsBuilder.append(new String(one));
                             } else {
@@ -169,10 +224,15 @@ public class DeviceElement {
 
                         String[] dpPortsList = dpPorts.split(",");
                         for (String str : dpPortsList) {
-                            ports.add(str);
+                            String[] sss = str.split("-eth");
+                            if (sss.length > 1) {
+                                portMap.put(Integer.valueOf(sss[1]), str);
+                            }
                         }
 
                         stateMachine.set(State.STANDBY);
+                        key.interestOps(key.interestOps() | SelectionKey.OP_READ);
+                        log.info("key set OP_READ on");
 
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -180,14 +240,58 @@ public class DeviceElement {
                     break;
 
                 case STANDBY:
-                case DESTROY:
-                case FINISH:
-                default:
+                    try {
 
+//                        StringBuilder portsBuilder = new StringBuilder();
+                        ByteBuffer byteBuffer = ByteBuffer.allocate(1);
+
+
+                        byteBuffer.clear();
+                        int ret = socketChannel.read(byteBuffer);
+
+                        if (ret == -1) {
+                            log.info("{} receive -1, when {}", dpid, stateMachine.get());
+                            stateMachine.set(State.DESTROY);
+                            recvSubmit(key);
+                            return -1;
+                        } else if (ret == 0) {
+                            log.info("{} receive 0, when {}", dpid, stateMachine.get());
+                            stateMachine.set(State.DESTROY);
+                            recvSubmit(key);
+                            return -2;
+                        }
+
+
+                        byte[] one = byteBuffer.array();
+                        log.info("{} get byte {}, when {}", dpid, new String(one), stateMachine.get());
+
+
+                        key.interestOps(key.interestOps() | SelectionKey.OP_READ);
+                        log.info("key set OP_READ on");
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+
+                case DESTROY:
+
+                    removeDeviceElement();
+                    recvSubmit(key);
+                    break;
+
+                case FINISH:
+
+                    boss.removeDeviceElement(DeviceElement.this.dpid);
+                    log.info("{} remove self from DEmap, when {}", dpid, stateMachine.get());
+
+                    break;
+
+                default:
+                    log.warn("error statemachine!!!");
             }
 
             return 0;
         }
-
     }
 }

@@ -14,7 +14,10 @@ import org.onosproject.mao.qos.base.MaoQosPolicy;
 import org.onosproject.mao.qos.intf.MaoPipelineService;
 import org.onosproject.net.Device;
 import org.onosproject.net.DeviceId;
+import org.onosproject.net.device.DeviceProvider;
+import org.onosproject.net.device.DeviceProviderService;
 import org.onosproject.net.device.DeviceService;
+import org.onosproject.net.topology.TopologyService;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +55,7 @@ public class MaoPipelineManager implements MaoPipelineService {
 
     LinkedBlockingQueue<MaoQosPolicy> policyQueue;
     AtomicBoolean needShutdown;
-    ConcurrentMap<String, DeviceElement> deviceElementMap; // "0000000000000001" : DE object
+    Map<String, DeviceElement> deviceElementMap; // "0000000000000001" : DE object
 
     DeviceCallable deviceCallable;
     RecvCallable recvCallable;
@@ -157,10 +160,22 @@ public class MaoPipelineManager implements MaoPipelineService {
 
     }
 
+    @Override
+    public Map<String, DeviceElement> debug(){
+        return deviceElementMap;
+    }
 
-
+    @Override
     public void pushQosPolicy(){
 
+    }
+
+    public void removeDeviceElement(String dpid){
+        log.error("Start Remove Map");
+        deviceElementMap.remove(dpid);
+        log.error("Complete Remove Map");
+
+//        log.info("\n DeviceElementMap is :\n {}\n", deviceElementMap.toString());
     }
 
 
@@ -221,8 +236,8 @@ public class MaoPipelineManager implements MaoPipelineService {
 //                            BufferedInputStream bufferedInputStream = new BufferedInputStream(Channels.newInputStream(socketChannel));
 
                             ByteBuffer deviceIdByteBuffer = ByteBuffer.allocate(DPID_MESSAGE_LENGTH);
-                            int retret = socketChannel.read(deviceIdByteBuffer);
-                            if(retret == -1){
+                            int ret = socketChannel.read(deviceIdByteBuffer);
+                            if(ret == -1){
                                 keyIter.remove();
                                 continue;
                             }
@@ -235,13 +250,17 @@ public class MaoPipelineManager implements MaoPipelineService {
                                 //FIXME
                             }
 
-                            DeviceElement deviceElement = new DeviceElement(device, deviceId, socketChannel);
+                            DeviceElement deviceElement = new DeviceElement(device, deviceId, socketChannel, MaoPipelineManager.this);
                             deviceElementMap.put(deviceId, deviceElement);
+                            log.info("accept new DeviceElement {}", deviceId);
+
 
 
                             socketChannel.configureBlocking(false);
                             try {
                                 recvCallable.socketChannelRegister(socketChannel, SelectionKey.OP_READ, deviceElement);
+                                log.info("register DeviceElement {} recvSelector OK!", deviceId);
+
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
@@ -334,7 +353,6 @@ public class MaoPipelineManager implements MaoPipelineService {
             }
             recvSelector.wakeup();
             channel.register(recvSelector, ops, deviceElement);
-            int a = 0;
         }
 
         @Override
@@ -376,30 +394,40 @@ public class MaoPipelineManager implements MaoPipelineService {
 
                         if(key.isReadable()){
 
-                            //attention!! - if OVS shutdown first, will trigger Readable, and read return -1
-
-                            boolean connected = ((SocketChannel)(key.channel())).isConnected();
-
                             DeviceElement deviceElement = (DeviceElement) key.attachment();
-                            deviceElement.recvSubmit();
+                            if(key.isValid()){
+                                key.interestOps(key.interestOps() & (~SelectionKey.OP_READ));
+                                log.info("key set OP_READ off");
+                            }else{
+                                log.info("key is not valid");
+                            }
+                            deviceElement.recvSubmit(key);
+                            log.info("recv Submit");
 
                         }else if(key.isWritable()){
 
                             int ops = key.readyOps();
+                            log.warn("recv Writable");
 
                         }else if(key.isAcceptable()){
 
                             int ops = key.readyOps();
+                            log.warn("recv Acceptable");
 
                         }else if(key.isValid()){
 
                             int ops = key.readyOps();
+                            log.warn("recv is valid");
 
                         }else{
                             int ops = key.readyOps();
+                            log.warn("recv unknown");
                         }
                         keyIter.remove();
+                        log.info("keyIter remove");
                     }
+                    log.info("finish keyIter");
+
                 } catch (IOException e) {
                     e.printStackTrace();
                     if(needShutdown.get()) {
