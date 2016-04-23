@@ -8,9 +8,13 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.Service;
 import org.onosproject.core.CoreService;
+import org.onosproject.mao.qos.api.impl.classify.MaoHtbClassObj;
 import org.onosproject.mao.qos.api.impl.qdisc.MaoHtbQdiscObj;
 import org.onosproject.mao.qos.api.intf.MaoQosObj;
+import org.onosproject.mao.qos.base.MaoQosPolicy;
+import org.onosproject.mao.qos.intf.MaoPipelineService;
 import org.onosproject.mao.qos.intf.MaoQosService;
+import org.onosproject.net.DeviceId;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 
@@ -19,7 +23,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 /**
  * Created by mao on 4/1/16.
  */
-@Component(immediate = true)
+@Component(immediate = false)
 @Service
 public class MaoQosManager implements MaoQosService {
 
@@ -28,6 +32,9 @@ public class MaoQosManager implements MaoQosService {
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected CoreService coreService;
+
+    @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
+    protected MaoPipelineService maoPipelineService;
 
 
     @Activate
@@ -49,137 +56,164 @@ public class MaoQosManager implements MaoQosService {
     @Override
     public boolean Apply(MaoQosObj qosObj){
 
-        StringBuilder command = new StringBuilder();
-        command.append("tc ");
-
-        if(qosObj.getObjType() == MaoQosObj.ObjType.QDISC) {
-
-            dealQdisc(qosObj, command);
-        } else if (qosObj.getObjType() == MaoQosObj.ObjType.CLASS) {
-
-            dealClass(qosObj, command);
-        } else {
-            log.info("invalid ObjType");
+        //TODO - check if it will invoke subclass.checkValid
+        if(!qosObj.checkValid()){
             return false;
         }
 
 
+        StringBuilder commandHead = new StringBuilder();
 
+        StringBuilder commandTail = new StringBuilder();
 
+        if(!dealHead(qosObj, commandHead)){
+            return false;
+        }
 
-        return true;
+        if(!dealTail(qosObj, commandTail)){
+            return false;
+        }
+
+        MaoQosPolicy qosPolicy = new MaoQosPolicy(qosObj.getDeviceId(),
+                                                  qosObj.getDeviceIntfNumber(),
+                                                  commandHead.toString(),
+                                                  commandTail.toString());
+
+        return maoPipelineService.pushQosPolicy(qosPolicy);
     }
+    private boolean dealHead(MaoQosObj qosObj, StringBuilder commandHead){
 
-    private boolean dealQdisc(MaoQosObj qosObj, StringBuilder command){
+        commandHead.append("tc ");
 
-        command.append("qdisc ");
+        if(qosObj.getObjType() == MaoQosObj.ObjType.QDISC) {
 
+            commandHead.append("qdisc ");
+        } else if (qosObj.getObjType() == MaoQosObj.ObjType.CLASS) {
+
+            commandHead.append("class ");
+        } else {
+            log.error("invalid ObjType");
+            return false;
+        }
 
         if(qosObj.getOperateType() == MaoQosObj.OperateType.ADD){
 
-            command.append("add ");
+            commandHead.append("add ");
         } else if(qosObj.getOperateType() == MaoQosObj.OperateType.DELETE) {
 
-            command.append("delete ");
+            commandHead.append("delete ");
         } else {
 
             log.warn("invalid operation");
             return false;
         }
 
-        if(qosObj.getDeviceIntf().equals("")){
-            log.warn("invalid deviceIntf");
-            return false;
-        }
-        command.append("dev " + qosObj.getDeviceIntf() + " ");
+        commandHead.append("dev ");
+        return true;
+    }
 
+    private boolean dealTail(MaoQosObj qosObj, StringBuilder commandTail){
+
+        commandTail.append(" ");// " " after Dev Name
+
+        if(qosObj.getObjType() == MaoQosObj.ObjType.QDISC) {
+
+            return dealQdisc(qosObj, commandTail);
+        } else if (qosObj.getObjType() == MaoQosObj.ObjType.CLASS) {
+
+            return dealClass(qosObj, commandTail);
+        } else {
+            log.error("invalid ObjType");
+        }
+
+        return false;
+    }
+
+
+    private boolean dealQdisc(MaoQosObj qosObj, StringBuilder commandTail){
 
         switch(qosObj.getScheduleType()) {
 
             case HTB:
-
-                dealQdiscHtb(qosObj, command);
-                break;
+                return dealQdiscHtb(qosObj, commandTail);
 
             default:
-                log.warn("invalid scheduleType");
+                log.warn("not handle scheduleType");
         }
 
-
-        return true;
+        return false;
     }
 
-    private boolean dealQdiscHtb(MaoQosObj qosObj, StringBuilder command){
+    private boolean dealQdiscHtb(MaoQosObj qosObj, StringBuilder commandTail){
 
         MaoHtbQdiscObj maoHtbQdiscObj = (MaoHtbQdiscObj) qosObj;
 
-        command.append("parent ");
-        int parent = maoHtbQdiscObj.getParent();
-        if(parent == 0){
-            command.append("root ");
-        } else {
-            command.append(parent + " ");
-        }
+        commandTail.append("parent ");
+        String parent = maoHtbQdiscObj.getParent();
+//        if(parent == 0){
+//            commandTail.append("root ");
+//        } else {
+//            commandTail.append(parent + " ");
+//        }
+        commandTail.append(parent + " ");
 
-        int handle = maoHtbQdiscObj.getHandle();
-        command.append("handle " + handle + " ");
+        String handle = maoHtbQdiscObj.getHandle();
+        commandTail.append("handle " + handle + " ");
 
         int defaultId = maoHtbQdiscObj.getDefaultId();
-        command.append("default "+ defaultId + " ");
+        commandTail.append("default "+ defaultId + " ");
 
         return true;
     }
 
 
-
-
-
-    private void dealClass(MaoQosObj qosObj, StringBuilder command){
+    private boolean dealClass(MaoQosObj qosObj, StringBuilder commandTail){
 
         switch(qosObj.getScheduleType()) {
 
             case HTB:
-
-                break;
+                return dealClassHtb(qosObj, commandTail);
+            default:
+                log.warn("not handle scheduleType");
         }
+
+        return false;
+    }
+
+    private boolean dealClassHtb(MaoQosObj qosObj, StringBuilder commandTail){
+
+        MaoHtbClassObj maoHtbClassObj = (MaoHtbClassObj) qosObj;
+
+        String parent = maoHtbClassObj.getParent();
+        commandTail.append("parent " + parent + " ");
+
+        String classId = maoHtbClassObj.getclassId();
+        commandTail.append("classid " + classId + " ");
+
+        commandTail.append("htb ");
+
+
+        //FIXME - danwei
+        long rate = maoHtbClassObj.getRate();
+        commandTail.append("rate " + rate + " ");
+
+        long ceil = maoHtbClassObj.getCeil();
+        commandTail.append("parent " + parent + " ");
+
+        long burst = maoHtbClassObj.getBurst();
+        commandTail.append("parent " + parent + " ");
+
+        long cburst = maoHtbClassObj.getCburst();
+        commandTail.append("parent " + parent + " ");
+
+        int priority = maoHtbClassObj.getPriority();
+        commandTail.append("parent " + parent + " ");
+
+
+
+
+
+
+        return true;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

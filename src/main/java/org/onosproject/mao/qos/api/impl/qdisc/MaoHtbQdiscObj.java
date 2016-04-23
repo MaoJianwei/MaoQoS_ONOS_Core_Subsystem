@@ -1,44 +1,60 @@
 package org.onosproject.mao.qos.api.impl.qdisc;
 
 import org.onosproject.mao.qos.api.intf.MaoQosQdiscObj;
+import org.onosproject.net.DeviceId;
 
 /**
  * Created by mao on 4/19/16.
  */
 public class MaoHtbQdiscObj extends MaoQosQdiscObj {
 
-    private int parent;
-    private int handle;
+    private String parent;
+    private String handle;
     private int defaultId;
 
-
-//    private MaoHtbQdiscObj(
-//            int parent,
-//            int handle,
-//            int defaultId,
-//            String device,
-//            String intf){
-//
-//        this.parent = parent;
-//        this.handle = handle;
-//        this.defaultId = defaultId;
-//        this.device = device;
-//        this.intf = intf;
-//    }
 
     private MaoHtbQdiscObj(){
 
     }
 
+    @Override
+    public boolean checkValid()
+    {
+        if(!super.checkValid()){
+            return false;
+        }
 
-    /**
-     * 0 for root
-     * @return
-     */
-    public int getParent(){
+//        if(this.getObjType().equals(ObjType.NULL)){
+//            log.error("ObjType.NULL");
+//            return false;
+//        }
+//        if(this.getScheduleType().equals(ScheduleType.NULL)){
+//            log.error("ScheduleType.NULL");
+//            return false;
+//        }
+//        if(this.getOperateType().equals(OperateType.NULL)){
+//            log.error("OperateType.NULL");
+//            return false;
+//        }
+//        if(this.getDeviceId().equals(DeviceId.NONE)){
+//            log.error("DeviceId.NONE");
+//            return false;
+//        }
+//        if(this.getDeviceIntfNumber() < 0){
+//            log.error("DeviceIntfNumber < 0");
+//            return false;
+//        }
+
+        return true;
+    }
+
+
+
+
+    public String getParent(){
         return parent;
     }
-    public int getHandle(){
+    public String getHandle(){
         return handle;
     }
     public int getDefaultId(){
@@ -46,9 +62,12 @@ public class MaoHtbQdiscObj extends MaoQosQdiscObj {
     }
 
 
-    public static Builder builder(){
+
+    public static MaoHtbQdiscObj.Builder builder(){
         return new Builder();
     }
+
+
 
     public static final class Builder {
 
@@ -58,11 +77,11 @@ public class MaoHtbQdiscObj extends MaoQosQdiscObj {
             ret = new MaoHtbQdiscObj();
         }
 
-        public Builder parent(int parent){
+        public Builder parent(String parent){
             ret.parent = parent;
             return this;
         }
-        public Builder handle(int handle){
+        public Builder handle(String handle){
             ret.handle = handle;
             return this;
         }
@@ -70,8 +89,8 @@ public class MaoHtbQdiscObj extends MaoQosQdiscObj {
             ret.defaultId = defaultId;
             return this;
         }
-        public Builder deviceIntf(String deviceIntf) {
-            ret.setDeviceIntf(deviceIntf);
+        public Builder deviceIntfNumber(int deviceIntfNumber) {
+            ret.setDeviceIntfNumber(deviceIntfNumber);
             return this;
         }
 

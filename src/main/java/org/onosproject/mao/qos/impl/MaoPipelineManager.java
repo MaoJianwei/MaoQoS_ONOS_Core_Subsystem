@@ -55,7 +55,7 @@ public class MaoPipelineManager implements MaoPipelineService {
 
     LinkedBlockingQueue<MaoQosPolicy> policyQueue;
     AtomicBoolean needShutdown;
-    Map<String, DeviceElement> deviceElementMap; // "0000000000000001" : DE object
+    Map<DeviceId, DeviceElement> deviceElementMap; // "0000000000000001" : DE object
 
     DeviceCallable deviceCallable;
     RecvCallable recvCallable;
@@ -131,7 +131,7 @@ public class MaoPipelineManager implements MaoPipelineService {
         DeviceElement.closeThreadPool(true);
         log.info("closing DeviceElement thread pool OK!", appId.id());
 
-        for(Map.Entry<String, DeviceElement> ele : deviceElementMap.entrySet()){
+        for(Map.Entry<DeviceId, DeviceElement> ele : deviceElementMap.entrySet()){
             ele.getValue().removeDeviceElement();
         }
         deviceElementMap.clear();
@@ -161,21 +161,33 @@ public class MaoPipelineManager implements MaoPipelineService {
     }
 
     @Override
-    public Map<String, DeviceElement> debug(){
+    public Map<DeviceId, DeviceElement> debug(){
         return deviceElementMap;
     }
 
+    /**
+     * blocking until putting success.
+     * @param qosPolicy
+     * @return
+     */
     @Override
-    public void pushQosPolicy(){
+    public boolean pushQosPolicy(MaoQosPolicy qosPolicy) {
 
+        if(!qosPolicy.checkValid()){
+            return false;
+        }
+
+        try {
+            policyQueue.put(qosPolicy);
+            return true;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
-    public void removeDeviceElement(String dpid){
-        log.error("Start Remove Map");
+    public void removeDeviceElement(DeviceId dpid){
         deviceElementMap.remove(dpid);
-        log.error("Complete Remove Map");
-
-//        log.info("\n DeviceElementMap is :\n {}\n", deviceElementMap.toString());
     }
 
 
@@ -250,8 +262,8 @@ public class MaoPipelineManager implements MaoPipelineService {
                                 //FIXME
                             }
 
-                            DeviceElement deviceElement = new DeviceElement(device, deviceId, socketChannel, MaoPipelineManager.this);
-                            deviceElementMap.put(deviceId, deviceElement);
+                            DeviceElement deviceElement = new DeviceElement(device, socketChannel, MaoPipelineManager.this);
+                            deviceElementMap.put(device.id(), deviceElement);
                             log.info("accept new DeviceElement {}", deviceId);
 
 
@@ -516,6 +528,11 @@ public class MaoPipelineManager implements MaoPipelineService {
                     }while(objDeviceElement == null);
 
                     if(objDeviceElement == null){ // TODO - put Policy back for ONOS wait, if nessesary, add countTimeout
+                        if(pushQosPolicy(policy)){
+                            log.warn("repush policy success");
+                        }else{
+                            log.error("repush policy fail !!!");
+                        }
                         continue;
                     }
                     DeviceElement deviceElement = (DeviceElement) objDeviceElement;
@@ -524,13 +541,15 @@ public class MaoPipelineManager implements MaoPipelineService {
 
                     log.info("SendCallable, Get socket channel!", appId.id());
 
-                    StringBuilder cmd = encapsulate(policy);
+                    String cmd = encapsulate(policy);
+                    if(cmd.equals("")){
+                        continue;//policy is not good, or DeviceElement is not ready.
+                    }
 
                     ByteBuffer buf = ByteBuffer.allocate(cmd.length());
-                    buf.put(cmd.toString().getBytes());
+                    buf.put(cmd.getBytes());
 
                     log.info("SendCallable, Get cmd and buf ready!", appId.id());
-
 
                     try {
 
@@ -540,10 +559,9 @@ public class MaoPipelineManager implements MaoPipelineService {
 
                     } catch (IOException e) {
                         e.printStackTrace();
-                        log.info("SendCallable, send cmd Wrong!", appId.id());
+                        log.error("SendCallable, send cmd Wrong!", appId.id());
                         //TODO - Mao
                     }
-
 
                 } catch (InterruptedException e) {
                     e.printStackTrace();
@@ -566,22 +584,36 @@ public class MaoPipelineManager implements MaoPipelineService {
             initReady.set(false);
         }
 
-        private StringBuilder encapsulate(MaoQosPolicy policy){
+        private String encapsulate(MaoQosPolicy policy){
 
-            //FIXME - below is test code
+            DeviceElement deviceElement = deviceElementMap.getOrDefault(policy.getDeviceId(), null);
+            if(deviceElement == null){
+                return "";
+            }
+            String portName = deviceElement.getPortName(policy.getDeviceIntfNumber());
+            if(portName.equals("")){
+                return "";
+            }
 
-            int length = policy.getQosCmd().length();
+            StringBuilder cmdBuilder = new StringBuilder();
+
+            cmdBuilder.append(policy.getQosCmdHead());
+            cmdBuilder.append(portName);
+            cmdBuilder.append(policy.getQosCmdTail());
+
+
+            int length = cmdBuilder.length();
 
             byte [] lengthByte = new byte[4];
             for(int i = 0; i<4; i++){
                 lengthByte[i] = (byte) ( ( length >> (i*8) ) & 0xFF );
             }
 
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append(new String(lengthByte));
-            stringBuilder.append(policy.getQosCmd());
+            StringBuilder protocolBuilder = new StringBuilder();
+            protocolBuilder.append(new String(lengthByte));
+            protocolBuilder.append(cmdBuilder.toString());
 
-            return stringBuilder;
+            return protocolBuilder.toString();
         }
     }
 }

@@ -19,6 +19,7 @@ import org.apache.karaf.shell.commands.Command;
 import org.onosproject.cli.AbstractShellCommand;
 import org.onosproject.mao.qos.base.DeviceElement;
 import org.onosproject.mao.qos.intf.MaoPipelineService;
+import org.onosproject.net.DeviceId;
 
 import java.util.Map;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -34,12 +35,12 @@ public class Debug extends AbstractShellCommand {
 
         MaoPipelineService maoPipelineManager = get(MaoPipelineService.class);
 
-        Map<String, DeviceElement> map = maoPipelineManager.debug();
+        Map<DeviceId, DeviceElement> map = maoPipelineManager.debug();
 
         int countSTANDBY = 0;
         int countINIT = 0;
         int countOTHER = 0;
-        for(Map.Entry<String, DeviceElement> de : map.entrySet()){
+        for(Map.Entry<DeviceId, DeviceElement> de : map.entrySet()){
             if(de.getValue().getState() == DeviceElement.State.STANDBY){
                 countSTANDBY++;
             }else if(de.getValue().getState() == DeviceElement.State.INIT_WAIT_PORT){
@@ -47,7 +48,7 @@ public class Debug extends AbstractShellCommand {
             }else{
                 countOTHER++;
             }
-            print("%s\t%-16.16s\t%s",de.getKey(), de.getValue().getState(), de.getValue().getPortMap().toString());
+            print("%s\t%-16.16s\t%s",de.getKey().uri().getSchemeSpecificPart(), de.getValue().getState(), de.getValue().getPortMap().toString());
         }
 
         print("\n\nCount: %d, Standby: %d, InitWaitPort: %d, Other: %d\nPoolSize: %d, ActiveCount: %d, TaskCount: %d, CompleteTask: %d",

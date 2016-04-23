@@ -64,12 +64,15 @@ public final class DeviceElement {
 
     private MaoPipelineManager boss;
     private Device device;
-    private String dpid;
+//    private String dpid;
 
     private SocketChannel socketChannel;
     private BufferedInputStream recvInputStream;
     private AtomicReference<State> stateMachine;
     private Map<Integer, String> portMap;
+
+
+    //below is for debug
 
     public State getState() {
         return stateMachine.get();
@@ -92,6 +95,15 @@ public final class DeviceElement {
         return ((ThreadPoolExecutor)executorService).getCompletedTaskCount();
     }
 
+    //above is for debug
+
+
+
+
+
+
+
+
     public static void closeThreadPool(boolean isTerminate) {
 
         executorService.shutdown();
@@ -113,13 +125,13 @@ public final class DeviceElement {
         log.info("executorService is going down");
     }
 
-    public DeviceElement(Device device, String dpid, SocketChannel socketChannel, MaoPipelineManager boss) {
+    public DeviceElement(Device device, SocketChannel socketChannel, MaoPipelineManager boss) {
 
         stateMachine = new AtomicReference<>(State.INIT);
 
         this.boss = boss;
         this.device = device;
-        this.dpid = dpid;
+//        this.dpid = dpid;
         this.socketChannel = socketChannel;
         this.portMap = new HashMap<>();
 
@@ -129,10 +141,15 @@ public final class DeviceElement {
         stateMachine.set(State.INIT_WAIT_PORT);
     }
 
+
+    public String getPortName(int deviceIntfNumber){
+        return portMap.getOrDefault(deviceIntfNumber, "");
+    }
+
     public void removeDeviceElement() {
 
         if (stateMachine.get() == State.FINISH) {
-            log.error("removeDeviceElement ERROR, {} has been FINISH !!!", dpid);
+            log.error("removeDeviceElement ERROR, {} has been FINISH !!!", device.id());
             return;
         }
 
@@ -140,20 +157,20 @@ public final class DeviceElement {
 
         try {
             recvInputStream.close();
-            log.info("{} close recvInputStream!  when {}", dpid, stateMachine.get());
+            log.info("{} close recvInputStream!  when {}", device.id(), stateMachine.get());
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         try {
             socketChannel.close();
-            log.info("{} close socket!  when {}", dpid, stateMachine.get());
+            log.info("{} close socket!  when {}", device.id(), stateMachine.get());
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         portMap.clear();
-        log.error("{} clear ports!  when {}", dpid, stateMachine.get());
+        log.error("{} clear ports!  when {}", device.id(), stateMachine.get());
 
         stateMachine.set(State.FINISH);
     }
@@ -198,13 +215,13 @@ public final class DeviceElement {
                             byteBuffer.clear();
                             int ret = socketChannel.read(byteBuffer);
                             if (ret == -1) {
-                                log.info("{} receive -1, when {}", dpid, stateMachine.get());
+                                log.info("{} receive -1, when {}", device.id(), stateMachine.get());
                                 stateMachine.set(State.DESTROY);
                                 recvSubmit(key);
                                 return -1;
                             } else if (ret == 0) {
                                 //FIXME should not ret == 0
-                                log.error("{} receive 0, when {}", dpid, stateMachine.get());
+                                log.error("{} receive 0, when {}", device.id(), stateMachine.get());
                                 stateMachine.set(State.DESTROY);
                                 recvSubmit(key);
                                 return -2;
@@ -220,7 +237,7 @@ public final class DeviceElement {
                         }
 
                         String dpPorts = portsBuilder.toString();
-                        log.info("{} get ports info: {}", dpid, dpPorts);
+                        log.info("{} get ports info: {}", device.id(), dpPorts);
 
                         String[] dpPortsList = dpPorts.split(",");
                         for (String str : dpPortsList) {
@@ -250,12 +267,12 @@ public final class DeviceElement {
                         int ret = socketChannel.read(byteBuffer);
 
                         if (ret == -1) {
-                            log.info("{} receive -1, when {}", dpid, stateMachine.get());
+                            log.info("{} receive -1, when {}", device.id(), stateMachine.get());
                             stateMachine.set(State.DESTROY);
                             recvSubmit(key);
                             return -1;
                         } else if (ret == 0) {
-                            log.info("{} receive 0, when {}", dpid, stateMachine.get());
+                            log.info("{} receive 0, when {}", device.id(), stateMachine.get());
                             stateMachine.set(State.DESTROY);
                             recvSubmit(key);
                             return -2;
@@ -263,7 +280,7 @@ public final class DeviceElement {
 
 
                         byte[] one = byteBuffer.array();
-                        log.info("{} get byte {}, when {}", dpid, new String(one), stateMachine.get());
+                        log.info("{} get byte {}, when {}", device.id(), new String(one), stateMachine.get());
 
 
                         key.interestOps(key.interestOps() | SelectionKey.OP_READ);
@@ -282,8 +299,8 @@ public final class DeviceElement {
 
                 case FINISH:
 
-                    boss.removeDeviceElement(DeviceElement.this.dpid);
-                    log.info("{} remove self from DEmap, when {}", dpid, stateMachine.get());
+                    boss.removeDeviceElement(DeviceElement.this.device.id());
+                    log.info("{} remove self from DEmap, when {}", device.id(), stateMachine.get());
 
                     break;
 

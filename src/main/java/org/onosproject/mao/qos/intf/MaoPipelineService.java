@@ -1,6 +1,8 @@
 package org.onosproject.mao.qos.intf;
 
 import org.onosproject.mao.qos.base.DeviceElement;
+import org.onosproject.mao.qos.base.MaoQosPolicy;
+import org.onosproject.net.DeviceId;
 
 import java.util.Map;
 
@@ -9,8 +11,8 @@ import java.util.Map;
  */
 public interface MaoPipelineService {
 
-    Map<String, DeviceElement> debug();
+    Map<DeviceId, DeviceElement> debug();
 
-    void pushQosPolicy();
+    boolean pushQosPolicy(MaoQosPolicy qosPolicy);
 
 }
