@@ -11,6 +11,9 @@ public abstract class MaoQosObj {
 
     protected static final Logger log = LoggerFactory.getLogger(MaoQosObj.class);
 
+    public static final String ROOT_NAME = "root";
+    public static final int INVALID_INT = -1;
+
 
     public static final MaoQosObj ROOT = new MaoQosObj(ROOT_NAME) {
 
@@ -21,8 +24,6 @@ public abstract class MaoQosObj {
         }
     };
 
-    public static final int INVALID_INT = -1;
-    public static final String ROOT_NAME = "root";
 
     public static final String RATE_BIT = "bit";
     public static final String RATE_KBIT = "kbit";
