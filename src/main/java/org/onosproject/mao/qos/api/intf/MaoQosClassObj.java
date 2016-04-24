@@ -5,7 +5,17 @@ package org.onosproject.mao.qos.api.intf;
  */
 public abstract class MaoQosClassObj extends MaoQosObj {
 
-    public MaoQosClassObj(){
-        setObjType(ObjType.CLASS);
+    protected MaoQosClassObj() {}
+
+    protected static abstract class Builder extends MaoQosObj.Builder {
+
+        protected Builder(){
+            setObjType(ObjType.CLASS);
+        }
+
+        protected MaoQosClassObj build(MaoQosClassObj maoQosClassObj){
+
+            return (MaoQosClassObj)super.build(maoQosClassObj);
+        }
     }
 }

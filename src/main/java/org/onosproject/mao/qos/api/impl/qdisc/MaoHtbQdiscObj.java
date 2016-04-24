@@ -3,6 +3,7 @@ package org.onosproject.mao.qos.api.impl.qdisc;
 import org.onosproject.mao.qos.api.intf.MaoQosObj;
 import org.onosproject.mao.qos.api.intf.MaoQosQdiscObj;
 import org.onosproject.net.DeviceId;
+import org.onosproject.net.flow.DefaultTrafficSelector;
 
 /**
  * Created by mao on 4/19/16.
@@ -14,13 +15,16 @@ public class MaoHtbQdiscObj extends MaoQosQdiscObj {
 
 
     private MaoHtbQdiscObj(){
-
+        defaultId = INVALID_INT;
     }
 
     @Override
     public boolean checkValid()
     {
         if(!super.checkValid()){
+            return false;
+        }
+        if(defaultId == INVALID_INT){
             return false;
         }
 
@@ -49,48 +53,34 @@ public class MaoHtbQdiscObj extends MaoQosQdiscObj {
     }
 
 
-
-
     public int getDefaultId(){
         return defaultId;
     }
-
-
 
     public static MaoHtbQdiscObj.Builder builder(){
         return new Builder();
     }
 
 
+    public static final class Builder extends MaoQosObj.Builder {
 
-    public static final class Builder {
-
-        private MaoHtbQdiscObj ret;
+        private int defaultId;
 
         private Builder(){
-            ret = new MaoHtbQdiscObj();
+            setScheduleType(ScheduleType.HTB);
         }
 
-        public Builder parent(MaoQosObj parent){
-            ret.setParent(parent);
-            return this;
-        }
-        public Builder handle(String handle){
-            ret.setHandleOrClassId(handle);
-            return this;
-        }
         public Builder defaultId(int defaultId){
-            ret.defaultId = defaultId;
+            this.defaultId = defaultId;
             return this;
         }
-        public Builder deviceIntfNumber(int deviceIntfNumber) {
-            ret.setDeviceIntfNumber(deviceIntfNumber);
-            return this;
-        }
-
 
         public MaoHtbQdiscObj build(){
-            return ret;
+
+            MaoHtbQdiscObj maoHtbQdiscObj = new MaoHtbQdiscObj();
+            maoHtbQdiscObj.defaultId = this.defaultId;
+
+            return (MaoHtbQdiscObj)super.build(maoHtbQdiscObj);
         }
     }
 }

@@ -49,22 +49,18 @@ public abstract class MaoQosObj {
     public static final String SIZE_GBYTE = "g";
 
 
-
-
-
-
-    public enum ObjType{
+    public enum ObjType {
         NULL,
         QDISC,
         CLASS
     }
 
-    public enum ScheduleType{
+    public enum ScheduleType {
         NULL,
         HTB
     }
 
-    public enum OperateType{
+    public enum OperateType {
         NULL,
         ADD,
         DELETE
@@ -82,37 +78,36 @@ public abstract class MaoQosObj {
     private String handleOrClassId;
 
 
-
-
     protected MaoQosObj() {
-        ;
+        objType = ObjType.NULL;
+        scheduleType = ScheduleType.NULL;
+        operateType = OperateType.NULL;
     }
-    private MaoQosObj(String root){
+
+    private MaoQosObj(String root) {
         this.handleOrClassId = root;
     }
 
 
-
     // should be Override and invoke super.checkValid()
-    public boolean checkValid()
-    {
-        if(this.getObjType().equals(ObjType.NULL)){
+    public boolean checkValid() {
+        if (this.getObjType().equals(ObjType.NULL)) {
             log.error("ObjType.NULL");
             return false;
         }
-        if(this.getScheduleType().equals(ScheduleType.NULL)){
+        if (this.getScheduleType().equals(ScheduleType.NULL)) {
             log.error("ScheduleType.NULL");
             return false;
         }
-        if(this.getOperateType().equals(OperateType.NULL)){
+        if (this.getOperateType().equals(OperateType.NULL)) {
             log.error("OperateType.NULL");
             return false;
         }
-        if(this.getDeviceId().equals(DeviceId.NONE)){
+        if (this.getDeviceId().equals(DeviceId.NONE)) {
             log.error("DeviceId.NONE");
             return false;
         }
-        if(this.getDeviceIntfNumber() < 0){
+        if (this.getDeviceIntfNumber() < 0) {
             log.error("DeviceIntfNumber < 0");
             return false;
         }
@@ -123,7 +118,6 @@ public abstract class MaoQosObj {
     }
 
 
-
     public ObjType getObjType() {
         return objType != null ? objType : ObjType.NULL;
     }
@@ -132,60 +126,92 @@ public abstract class MaoQosObj {
         return scheduleType != null ? scheduleType : ScheduleType.NULL;
     }
 
-    public OperateType getOperateType(){
+    public OperateType getOperateType() {
         return operateType != null ? operateType : OperateType.NULL;
     }
 
-    public DeviceId getDeviceId(){
+    public DeviceId getDeviceId() {
         return deviceId != null ? deviceId : DeviceId.NONE;
     }
 
-    public int getDeviceIntfNumber(){
+    public int getDeviceIntfNumber() {
         return deviceIntfNumber;
     }
 
-    public String getParentId(){
+    public String getParentId() {
         return parent.getHandleOrClassId();
     }
 
-    public String getHandleOrClassId(){
+    public String getHandleOrClassId() {
         return handleOrClassId;
     }
 
+    //for inherit
+    protected static abstract class Builder {
+
+        private ObjType objType;
+        private ScheduleType scheduleType;
+        private OperateType operateType;
+
+        private DeviceId deviceId;
+        private int deviceIntfNumber;
+
+        private MaoQosObj parent;
+        private String handleOrClassId;
 
 
+        protected Builder setObjType(ObjType type) {
+            this.objType = type;
+            return this;
+        }
 
+        protected Builder setScheduleType(ScheduleType type) {
+            this.scheduleType = type;
+            return this;
+        }
 
-    public void setObjType(ObjType type) {
-        objType = type;
-    }
+        protected Builder setDeviceId(DeviceId deviceId) {
+            this.deviceId = deviceId;
+            return this;
+        }
 
-    public void setScheduleType(ScheduleType type) {
-        scheduleType = type;
-    }
+        protected Builder setDeviceIntfNumber(int deviceIntfNumber) {
+            this.deviceIntfNumber = deviceIntfNumber;
+            return this;
+        }
 
-    public void setDeviceId(DeviceId deviceId){
-        this.deviceId = deviceId;
-    }
+        protected Builder setParent(MaoQosObj qosObj) {
+            this.parent = qosObj;
+            return this;
+        }
 
-    public void setDeviceIntfNumber(int deviceIntfNumber) {
-        this.deviceIntfNumber = deviceIntfNumber;
-    }
+        protected Builder setHandleOrClassId(String handleOrClassId) {
+            this.handleOrClassId = handleOrClassId;
+            return this;
+        }
 
-    public void setParent(MaoQosObj qosObj){
-        this.parent = qosObj;
-    }
+        protected Builder add() {
+            this.operateType = OperateType.ADD;
+            return this;
+        }
 
-    public void setHandleOrClassId(String handleOrClassId){
-        this.handleOrClassId = handleOrClassId;
-    }
+        protected Builder delete() {
+            this.operateType = OperateType.DELETE;
+            return this;
+        }
 
-    public void add() {
-        operateType = OperateType.ADD;
-    }
+        protected MaoQosObj build(MaoQosObj maoQosObj) {
 
-    public void delete() {
-        operateType = OperateType.DELETE;
+            maoQosObj.objType = this.objType;
+            maoQosObj.scheduleType = this.scheduleType;
+            maoQosObj.operateType = this.operateType;
+            maoQosObj.deviceId = this.deviceId;
+            maoQosObj.deviceIntfNumber = this.deviceIntfNumber;
+            maoQosObj.parent = this.parent;
+            maoQosObj.handleOrClassId = this.handleOrClassId;
+
+            return maoQosObj;
+        }
     }
 }
 

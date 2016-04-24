@@ -5,7 +5,17 @@ package org.onosproject.mao.qos.api.intf;
  */
 public abstract class MaoQosQdiscObj extends MaoQosObj {
 
-    public MaoQosQdiscObj(){
-        setObjType(ObjType.QDISC);
+    protected MaoQosQdiscObj() {}
+
+    protected static abstract class Builder extends MaoQosObj.Builder {
+
+        protected Builder(){
+            setObjType(ObjType.QDISC);
+        }
+
+        protected MaoQosQdiscObj build(MaoQosQdiscObj maoQosQdiscObj){
+
+            return (MaoQosQdiscObj)super.build(maoQosQdiscObj);
+        }
     }
 }

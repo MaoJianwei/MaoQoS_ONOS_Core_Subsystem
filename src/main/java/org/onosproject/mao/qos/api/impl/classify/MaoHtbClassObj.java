@@ -25,6 +25,7 @@ public class MaoHtbClassObj extends MaoQosClassObj {
 
 
     private MaoHtbClassObj(){
+
         rate = INVALID_INT;
         ceil = INVALID_INT;
         burst = INVALID_INT;
@@ -98,50 +99,63 @@ public class MaoHtbClassObj extends MaoQosClassObj {
     }
 
 
-    public static final class Builder {
+    public static final class Builder extends MaoQosClassObj.Builder {
 
-        private MaoHtbClassObj ret;
+
+        private long rate;
+        private String rateUnit;
+        private long ceil;
+        private String ceilUnit;
+        private long burst;
+        private String burstUnit;
+        private long cburst;
+        private String cburstUnit;
+        private int priority;
 
         private Builder(){
-            ret = new MaoHtbClassObj();
+            setScheduleType(ScheduleType.HTB);
         }
 
-        public Builder parent(MaoQosObj parent){
-            ret.setParent(parent);
-            return this;
-        }
-        public Builder classId(String classId){
-            ret.setHandleOrClassId(classId);
-            return this;
-        }
         public Builder rate(long rate, String rateUnit){
-            ret.rate = rate;
-            ret.rateUnit = rateUnit;
+            this.rate = rate;
+            this.rateUnit = rateUnit;
             return this;
         }
         public Builder ceil(long ceil, String ceilUnit){
-            ret.ceil = ceil;
-            ret.ceilUnit = ceilUnit;
+            this.ceil = ceil;
+            this.ceilUnit = ceilUnit;
             return this;
         }
         public Builder burst(long burst, String burstUnit){
-            ret.burst = burst;
-            ret.burstUnit = burstUnit;
+            this.burst = burst;
+            this.burstUnit = burstUnit;
             return this;
         }
         public Builder cburst(long cburst, String cburstUnit){
-            ret.cburst = cburst;
-            ret.cburstUnit = cburstUnit;
+            this.cburst = cburst;
+            this.cburstUnit = cburstUnit;
             return this;
         }
         public Builder priority(int priority){
-            ret.priority = priority;
+            this.priority = priority;
             return this;
         }
 
 
         public MaoHtbClassObj build(){
-            return ret;
+            MaoHtbClassObj maoHtbClassObj = new MaoHtbClassObj();
+            maoHtbClassObj.rate = this.rate;
+            maoHtbClassObj.rateUnit = this.rateUnit;
+            maoHtbClassObj.ceil = this.ceil;
+            maoHtbClassObj.ceilUnit = this.ceilUnit;
+            maoHtbClassObj.burst = this.burst;
+            maoHtbClassObj.burstUnit = this.burstUnit;
+            maoHtbClassObj.cburst = this.cburst;
+            maoHtbClassObj.cburstUnit = this.cburstUnit;
+            maoHtbClassObj.priority = this.priority;
+
+
+            return (MaoHtbClassObj)super.build(maoHtbClassObj);
         }
 
     }
