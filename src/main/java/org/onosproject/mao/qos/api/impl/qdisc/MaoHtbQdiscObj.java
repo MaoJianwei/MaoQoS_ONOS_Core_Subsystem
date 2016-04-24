@@ -70,7 +70,7 @@ public class MaoHtbQdiscObj extends MaoQosQdiscObj {
             setScheduleType(ScheduleType.HTB);
         }
 
-        public Builder defaultId(int defaultId){
+        public Builder setDefaultId(int defaultId){
             this.defaultId = defaultId;
             return this;
         }
