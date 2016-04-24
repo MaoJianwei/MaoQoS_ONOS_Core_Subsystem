@@ -12,6 +12,46 @@ public abstract class MaoQosObj {
     protected static final Logger log = LoggerFactory.getLogger(MaoQosObj.class);
 
 
+    public static final MaoQosObj ROOT = new MaoQosObj(ROOT_NAME) {
+
+        // for compatibility
+        @Override
+        public boolean checkValid() {
+            return true;
+        }
+    };
+
+    public static final int INVALID_INT = -1;
+    public static final String ROOT_NAME = "root";
+
+    public static final String RATE_BIT = "bit";
+    public static final String RATE_KBIT = "kbit";
+    public static final String RATE_MBIT = "mbit";
+    public static final String RATE_GBIT = "gbit";
+    public static final String RATE_TBIT = "tbit";
+
+    public static final String RATE_BYTE = "bps";
+    public static final String RATE_KBYTE = "kbps";
+    public static final String RATE_MBYTE = "mbps";
+    public static final String RATE_GBYTE = "gbps";
+    public static final String RATE_TBYTE = "tbps";
+
+
+    public static final String SIZE_KBIT = "kbit";
+    public static final String SIZE_MBIT = "mbit";
+    public static final String SIZE_GBIT = "gbit";
+
+
+    public static final String SIZE_BYTE = "b";
+    public static final String SIZE_KBYTE = "k";
+    public static final String SIZE_MBYTE = "m";
+    public static final String SIZE_GBYTE = "g";
+
+
+
+
+
+
     public enum ObjType{
         NULL,
         QDISC,
@@ -36,6 +76,20 @@ public abstract class MaoQosObj {
 
     private DeviceId deviceId;
     private int deviceIntfNumber;
+
+    private MaoQosObj parent;
+    private String handleOrClassId;
+
+
+
+
+    protected MaoQosObj() {
+        ;
+    }
+    private MaoQosObj(String root){
+        this.handleOrClassId = root;
+    }
+
 
 
     // should be Override and invoke super.checkValid()
@@ -62,6 +116,8 @@ public abstract class MaoQosObj {
             return false;
         }
 
+        //FIXME - attention -  not all need parent and handleOrClassId
+
         return true;
     }
 
@@ -87,6 +143,14 @@ public abstract class MaoQosObj {
         return deviceIntfNumber;
     }
 
+    public String getParentId(){
+        return parent.getHandleOrClassId();
+    }
+
+    public String getHandleOrClassId(){
+        return handleOrClassId;
+    }
+
 
 
 
@@ -105,6 +169,14 @@ public abstract class MaoQosObj {
 
     public void setDeviceIntfNumber(int deviceIntfNumber) {
         this.deviceIntfNumber = deviceIntfNumber;
+    }
+
+    public void setParent(MaoQosObj qosObj){
+        this.parent = qosObj;
+    }
+
+    public void setHandleOrClassId(String handleOrClassId){
+        this.handleOrClassId = handleOrClassId;
     }
 
     public void add() {

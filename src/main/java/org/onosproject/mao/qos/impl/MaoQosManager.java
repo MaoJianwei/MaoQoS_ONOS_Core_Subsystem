@@ -7,6 +7,7 @@ import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.Service;
+import org.onosproject.core.ApplicationId;
 import org.onosproject.core.CoreService;
 import org.onosproject.mao.qos.api.impl.classify.MaoHtbClassObj;
 import org.onosproject.mao.qos.api.impl.qdisc.MaoHtbQdiscObj;
@@ -37,15 +38,20 @@ public class MaoQosManager implements MaoQosService {
     protected MaoPipelineService maoPipelineService;
 
 
+    private ApplicationId appId;
+
+
     @Activate
     public void activate(ComponentContext context) {
-        coreService.registerApplication("org.onosproject.mao.qos");
+        appId = coreService.registerApplication("org.onosproject.mao.qos");
 
+        log.info("MaoQosManager start OK!");
     }
 
     @Deactivate
     public void deactivate() {
 
+        log.info("MaoQosManager stop OK!");
     }
 
     @Modified
@@ -54,10 +60,10 @@ public class MaoQosManager implements MaoQosService {
     }
 
     @Override
-    public boolean Apply(MaoQosObj qosObj){
+    public boolean Apply(MaoQosObj qosObj) {
 
         //TODO - check if it will invoke subclass.checkValid
-        if(!qosObj.checkValid()){
+        if (!qosObj.checkValid()) {
             return false;
         }
 
@@ -66,11 +72,11 @@ public class MaoQosManager implements MaoQosService {
 
         StringBuilder commandTail = new StringBuilder();
 
-        if(!dealHead(qosObj, commandHead)){
+        if (!dealHead(qosObj, commandHead)) {
             return false;
         }
 
-        if(!dealTail(qosObj, commandTail)){
+        if (!dealTail(qosObj, commandTail)) {
             return false;
         }
 
@@ -81,11 +87,12 @@ public class MaoQosManager implements MaoQosService {
 
         return maoPipelineService.pushQosPolicy(qosPolicy);
     }
-    private boolean dealHead(MaoQosObj qosObj, StringBuilder commandHead){
+
+    private boolean dealHead(MaoQosObj qosObj, StringBuilder commandHead) {
 
         commandHead.append("tc ");
 
-        if(qosObj.getObjType() == MaoQosObj.ObjType.QDISC) {
+        if (qosObj.getObjType() == MaoQosObj.ObjType.QDISC) {
 
             commandHead.append("qdisc ");
         } else if (qosObj.getObjType() == MaoQosObj.ObjType.CLASS) {
@@ -96,10 +103,10 @@ public class MaoQosManager implements MaoQosService {
             return false;
         }
 
-        if(qosObj.getOperateType() == MaoQosObj.OperateType.ADD){
+        if (qosObj.getOperateType() == MaoQosObj.OperateType.ADD) {
 
             commandHead.append("add ");
-        } else if(qosObj.getOperateType() == MaoQosObj.OperateType.DELETE) {
+        } else if (qosObj.getOperateType() == MaoQosObj.OperateType.DELETE) {
 
             commandHead.append("delete ");
         } else {
@@ -112,11 +119,11 @@ public class MaoQosManager implements MaoQosService {
         return true;
     }
 
-    private boolean dealTail(MaoQosObj qosObj, StringBuilder commandTail){
+    private boolean dealTail(MaoQosObj qosObj, StringBuilder commandTail) {
 
         commandTail.append(" ");// " " after Dev Name
 
-        if(qosObj.getObjType() == MaoQosObj.ObjType.QDISC) {
+        if (qosObj.getObjType() == MaoQosObj.ObjType.QDISC) {
 
             return dealQdisc(qosObj, commandTail);
         } else if (qosObj.getObjType() == MaoQosObj.ObjType.CLASS) {
@@ -130,9 +137,9 @@ public class MaoQosManager implements MaoQosService {
     }
 
 
-    private boolean dealQdisc(MaoQosObj qosObj, StringBuilder commandTail){
+    private boolean dealQdisc(MaoQosObj qosObj, StringBuilder commandTail) {
 
-        switch(qosObj.getScheduleType()) {
+        switch (qosObj.getScheduleType()) {
 
             case HTB:
                 return dealQdiscHtb(qosObj, commandTail);
@@ -144,32 +151,32 @@ public class MaoQosManager implements MaoQosService {
         return false;
     }
 
-    private boolean dealQdiscHtb(MaoQosObj qosObj, StringBuilder commandTail){
+    private boolean dealQdiscHtb(MaoQosObj qosObj, StringBuilder commandTail) {
 
         MaoHtbQdiscObj maoHtbQdiscObj = (MaoHtbQdiscObj) qosObj;
 
-        commandTail.append("parent ");
-        String parent = maoHtbQdiscObj.getParent();
-//        if(parent == 0){
-//            commandTail.append("root ");
-//        } else {
-//            commandTail.append(parent + " ");
-//        }
-        commandTail.append(parent + " ");
 
-        String handle = maoHtbQdiscObj.getHandle();
+        String parent = maoHtbQdiscObj.getParentId();
+        if(parent.equals(MaoQosObj.ROOT_NAME)){
+            commandTail.append(MaoQosObj.ROOT_NAME + " ");
+        }else {
+            commandTail.append("parent " + parent + " ");
+        }
+
+
+        String handle = maoHtbQdiscObj.getHandleOrClassId();
         commandTail.append("handle " + handle + " ");
 
         int defaultId = maoHtbQdiscObj.getDefaultId();
-        commandTail.append("default "+ defaultId + " ");
+        commandTail.append("default " + defaultId + " ");
 
         return true;
     }
 
 
-    private boolean dealClass(MaoQosObj qosObj, StringBuilder commandTail){
+    private boolean dealClass(MaoQosObj qosObj, StringBuilder commandTail) {
 
-        switch(qosObj.getScheduleType()) {
+        switch (qosObj.getScheduleType()) {
 
             case HTB:
                 return dealClassHtb(qosObj, commandTail);
@@ -180,38 +187,51 @@ public class MaoQosManager implements MaoQosService {
         return false;
     }
 
-    private boolean dealClassHtb(MaoQosObj qosObj, StringBuilder commandTail){
+    private boolean dealClassHtb(MaoQosObj qosObj, StringBuilder commandTail) {
 
         MaoHtbClassObj maoHtbClassObj = (MaoHtbClassObj) qosObj;
 
-        String parent = maoHtbClassObj.getParent();
+        String parent = maoHtbClassObj.getParentId();
         commandTail.append("parent " + parent + " ");
 
-        String classId = maoHtbClassObj.getclassId();
+        String classId = maoHtbClassObj.getHandleOrClassId();
         commandTail.append("classid " + classId + " ");
 
         commandTail.append("htb ");
 
 
-        //FIXME - danwei
         long rate = maoHtbClassObj.getRate();
-        commandTail.append("rate " + rate + " ");
+        if (rate != MaoQosObj.INVALID_INT) {
+            String rateUnit = maoHtbClassObj.getRateUnit();
+            commandTail.append("rate " + rate + rateUnit + " ");
+        }
 
         long ceil = maoHtbClassObj.getCeil();
-        commandTail.append("parent " + parent + " ");
+        if (ceil != MaoQosObj.INVALID_INT) {
+
+            String ceilUnit = maoHtbClassObj.getCeilUnit();
+            commandTail.append("ceil " + ceil + ceilUnit + " ");
+        }
 
         long burst = maoHtbClassObj.getBurst();
-        commandTail.append("parent " + parent + " ");
+        if (burst != MaoQosObj.INVALID_INT) {
+
+            String burstUnit = maoHtbClassObj.getBurstUnit();
+            commandTail.append("burst " + burst + burstUnit + " ");
+        }
 
         long cburst = maoHtbClassObj.getCburst();
-        commandTail.append("parent " + parent + " ");
+        if (cburst != MaoQosObj.INVALID_INT) {
+
+            String cburstUnit = maoHtbClassObj.getCburstUnit();
+            commandTail.append("cburst " + cburst + cburstUnit + " ");
+        }
 
         int priority = maoHtbClassObj.getPriority();
-        commandTail.append("parent " + parent + " ");
+        if (priority != MaoQosObj.INVALID_INT) {
 
-
-
-
+            commandTail.append("prio " + priority + " ");
+        }
 
 
         return true;

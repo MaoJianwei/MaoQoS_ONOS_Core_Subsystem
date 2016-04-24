@@ -1,5 +1,6 @@
 package org.onosproject.mao.qos.api.impl.qdisc;
 
+import org.onosproject.mao.qos.api.intf.MaoQosObj;
 import org.onosproject.mao.qos.api.intf.MaoQosQdiscObj;
 import org.onosproject.net.DeviceId;
 
@@ -8,8 +9,7 @@ import org.onosproject.net.DeviceId;
  */
 public class MaoHtbQdiscObj extends MaoQosQdiscObj {
 
-    private String parent;
-    private String handle;
+
     private int defaultId;
 
 
@@ -51,12 +51,6 @@ public class MaoHtbQdiscObj extends MaoQosQdiscObj {
 
 
 
-    public String getParent(){
-        return parent;
-    }
-    public String getHandle(){
-        return handle;
-    }
     public int getDefaultId(){
         return defaultId;
     }
@@ -77,12 +71,12 @@ public class MaoHtbQdiscObj extends MaoQosQdiscObj {
             ret = new MaoHtbQdiscObj();
         }
 
-        public Builder parent(String parent){
-            ret.parent = parent;
+        public Builder parent(MaoQosObj parent){
+            ret.setParent(parent);
             return this;
         }
         public Builder handle(String handle){
-            ret.handle = handle;
+            ret.setHandleOrClassId(handle);
             return this;
         }
         public Builder defaultId(int defaultId){

@@ -1,6 +1,7 @@
 package org.onosproject.mao.qos.api.impl.classify;
 
 import org.onosproject.mao.qos.api.intf.MaoQosClassObj;
+import org.onosproject.mao.qos.api.intf.MaoQosObj;
 import org.onosproject.net.DeviceId;
 import org.onosproject.net.device.DeviceProviderService;
 import org.onosproject.net.device.DeviceService;
@@ -12,23 +13,23 @@ import org.onosproject.net.flow.DefaultTrafficSelector;
  */
 public class MaoHtbClassObj extends MaoQosClassObj {
 
-    private String parent;
-    private String classId;
     private long rate;
+    private String rateUnit;
     private long ceil;
+    private String ceilUnit;
     private long burst;
+    private String burstUnit;
     private long cburst;
+    private String cburstUnit;
     private int priority;
 
 
     private MaoHtbClassObj(){
-        parent = "";
-        classId = "";
-        rate = -1;
-        ceil = -1;
-        burst = -1;
-        cburst = -1;
-        priority = -1;
+        rate = INVALID_INT;
+        ceil = INVALID_INT;
+        burst = INVALID_INT;
+        cburst = INVALID_INT;
+        priority = INVALID_INT;
     }
 
     @Override
@@ -37,7 +38,6 @@ public class MaoHtbClassObj extends MaoQosClassObj {
         if(!super.checkValid()){
             return false;
         }
-
 //        if(this.getObjType().equals(ObjType.NULL)){
 //            log.error("ObjType.NULL");
 //            return false;
@@ -64,23 +64,29 @@ public class MaoHtbClassObj extends MaoQosClassObj {
 
 
 
-    public String getParent(){
-        return parent;
-    }
-    public String getclassId(){
-        return classId;
-    }
     public long getRate(){
         return rate;
+    }
+    public String getRateUnit(){
+        return rateUnit;
     }
     public long getCeil(){
         return ceil;
     }
+    public String getCeilUnit(){
+        return ceilUnit;
+    }
     public long getBurst(){
         return burst;
     }
+    public String getBurstUnit(){
+        return burstUnit;
+    }
     public long getCburst(){
         return cburst;
+    }
+    public String getCburstUnit(){
+        return cburstUnit;
     }
     public int getPriority(){
         return priority;
@@ -100,28 +106,32 @@ public class MaoHtbClassObj extends MaoQosClassObj {
             ret = new MaoHtbClassObj();
         }
 
-        public Builder parent(String parent){
-            ret.parent = parent;
+        public Builder parent(MaoQosObj parent){
+            ret.setParent(parent);
             return this;
         }
         public Builder classId(String classId){
-            ret.classId = classId;
+            ret.setHandleOrClassId(classId);
             return this;
         }
-        public Builder rate(long rate){
+        public Builder rate(long rate, String rateUnit){
             ret.rate = rate;
+            ret.rateUnit = rateUnit;
             return this;
         }
-        public Builder ceil(long ceil){
+        public Builder ceil(long ceil, String ceilUnit){
             ret.ceil = ceil;
+            ret.ceilUnit = ceilUnit;
             return this;
         }
-        public Builder burst(long burst){
+        public Builder burst(long burst, String burstUnit){
             ret.burst = burst;
+            ret.burstUnit = burstUnit;
             return this;
         }
-        public Builder cburst(long cburst){
+        public Builder cburst(long cburst, String cburstUnit){
             ret.cburst = cburst;
+            ret.cburstUnit = cburstUnit;
             return this;
         }
         public Builder priority(int priority){
