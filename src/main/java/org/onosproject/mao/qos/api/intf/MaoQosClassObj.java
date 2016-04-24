@@ -7,7 +7,7 @@ public abstract class MaoQosClassObj extends MaoQosObj {
 
     protected MaoQosClassObj() {}
 
-    protected static abstract class Builder extends MaoQosObj.Builder {
+    protected static abstract class Builder<SubBuilderClass> extends MaoQosObj.Builder<SubBuilderClass> {
 
         protected Builder(){
             setObjType(ObjType.CLASS);

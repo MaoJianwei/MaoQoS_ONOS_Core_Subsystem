@@ -147,7 +147,7 @@ public abstract class MaoQosObj {
     }
 
     //for inherit
-    protected static abstract class Builder {
+    protected static abstract class Builder<SubBuilderClass> {
 
         private ObjType objType;
         private ScheduleType scheduleType;
@@ -159,45 +159,49 @@ public abstract class MaoQosObj {
         private MaoQosObj parent;
         private String handleOrClassId;
 
+//        private SubBuilderClass subBuilder;
+//        protected void initBuilder(){
+//
+//        }
 
-        protected Builder setObjType(ObjType type) {
+        protected SubBuilderClass setObjType(ObjType type) {
             this.objType = type;
-            return this;
+            return (SubBuilderClass)this;
         }
 
-        protected Builder setScheduleType(ScheduleType type) {
+        protected SubBuilderClass setScheduleType(ScheduleType type) {
             this.scheduleType = type;
-            return this;
+            return (SubBuilderClass)this;
         }
 
-        protected Builder setDeviceId(DeviceId deviceId) {
+        public SubBuilderClass setDeviceId(DeviceId deviceId) {
             this.deviceId = deviceId;
-            return this;
+            return (SubBuilderClass)this;
         }
 
-        protected Builder setDeviceIntfNumber(int deviceIntfNumber) {
+        public SubBuilderClass setDeviceIntfNumber(int deviceIntfNumber) {
             this.deviceIntfNumber = deviceIntfNumber;
-            return this;
+            return (SubBuilderClass)this;
         }
 
-        protected Builder setParent(MaoQosObj qosObj) {
+        public SubBuilderClass setParent(MaoQosObj qosObj) {
             this.parent = qosObj;
-            return this;
+            return (SubBuilderClass)this;
         }
 
-        protected Builder setHandleOrClassId(String handleOrClassId) {
+        public SubBuilderClass setHandleOrClassId(String handleOrClassId) {
             this.handleOrClassId = handleOrClassId;
-            return this;
+            return (SubBuilderClass)this;
         }
 
-        protected Builder add() {
+        public SubBuilderClass add() {
             this.operateType = OperateType.ADD;
-            return this;
+            return (SubBuilderClass)this;
         }
 
-        protected Builder delete() {
+        public SubBuilderClass delete() {
             this.operateType = OperateType.DELETE;
-            return this;
+            return (SubBuilderClass)this;
         }
 
         protected MaoQosObj build(MaoQosObj maoQosObj) {

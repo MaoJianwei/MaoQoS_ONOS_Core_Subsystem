@@ -62,7 +62,7 @@ public class MaoHtbQdiscObj extends MaoQosQdiscObj {
     }
 
 
-    public static final class Builder extends MaoQosObj.Builder {
+    public static final class Builder extends MaoQosQdiscObj.Builder<MaoHtbQdiscObj.Builder> {
 
         private int defaultId;
 

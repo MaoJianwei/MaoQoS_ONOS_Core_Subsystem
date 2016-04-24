@@ -99,8 +99,7 @@ public class MaoHtbClassObj extends MaoQosClassObj {
     }
 
 
-    public static final class Builder extends MaoQosClassObj.Builder {
-
+    public static final class Builder extends MaoQosClassObj.Builder<MaoHtbClassObj.Builder> {
 
         private long rate;
         private String rateUnit;
