@@ -25,12 +25,6 @@ public class MaoHtbClassObj extends MaoQosClassObj {
 
 
     private MaoHtbClassObj(){
-
-        rate = INVALID_INT;
-        ceil = INVALID_INT;
-        burst = INVALID_INT;
-        cburst = INVALID_INT;
-        priority = INVALID_INT;
     }
 
     @Override
@@ -113,6 +107,12 @@ public class MaoHtbClassObj extends MaoQosClassObj {
 
         private Builder(){
             setScheduleType(ScheduleType.HTB);
+
+            rate = INVALID_INT;
+            ceil = INVALID_INT;
+            burst = INVALID_INT;
+            cburst = INVALID_INT;
+            priority = INVALID_INT;
         }
 
         public Builder rate(long rate, String rateUnit){

@@ -57,7 +57,10 @@ public abstract class MaoQosObj {
 
     public enum ScheduleType {
         NULL,
-        HTB
+        HTB,
+        FIFO,
+        SFQ,
+        TBF
     }
 
     public enum OperateType {

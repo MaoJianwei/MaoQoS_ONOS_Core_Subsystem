@@ -15,7 +15,6 @@ public class MaoHtbQdiscObj extends MaoQosQdiscObj {
 
 
     private MaoHtbQdiscObj(){
-        defaultId = INVALID_INT;
     }
 
     @Override
@@ -24,9 +23,9 @@ public class MaoHtbQdiscObj extends MaoQosQdiscObj {
         if(!super.checkValid()){
             return false;
         }
-        if(defaultId == INVALID_INT){
-            return false;
-        }
+//        if(defaultId == INVALID_INT){
+//            return false;
+//        }
 
 //        if(this.getObjType().equals(ObjType.NULL)){
 //            log.error("ObjType.NULL");
@@ -68,6 +67,7 @@ public class MaoHtbQdiscObj extends MaoQosQdiscObj {
 
         private Builder(){
             setScheduleType(ScheduleType.HTB);
+            defaultId = INVALID_INT;
         }
 
         public Builder setDefaultId(int defaultId){

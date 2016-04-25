@@ -10,7 +10,10 @@ import org.apache.felix.scr.annotations.Service;
 import org.onosproject.core.ApplicationId;
 import org.onosproject.core.CoreService;
 import org.onosproject.mao.qos.api.impl.classify.MaoHtbClassObj;
+import org.onosproject.mao.qos.api.impl.qdisc.MaoFifoQdiscObj;
 import org.onosproject.mao.qos.api.impl.qdisc.MaoHtbQdiscObj;
+import org.onosproject.mao.qos.api.impl.qdisc.MaoSfqQdiscObj;
+import org.onosproject.mao.qos.api.impl.qdisc.MaoTbfQdiscObj;
 import org.onosproject.mao.qos.api.intf.MaoQosObj;
 import org.onosproject.mao.qos.base.MaoQosPolicy;
 import org.onosproject.mao.qos.intf.MaoPipelineService;
@@ -144,6 +147,9 @@ public class MaoQosManager implements MaoQosService {
             case HTB:
                 return dealQdiscHtb(qosObj, commandTail);
 
+            case FIFO:
+                return dealQdiscFifo(qosObj, commandTail);
+
             default:
                 log.warn("not handle scheduleType");
         }
@@ -171,11 +177,119 @@ public class MaoQosManager implements MaoQosService {
 
 
         int defaultId = maoHtbQdiscObj.getDefaultId();
-        commandTail.append("default " + defaultId + " ");
+        if(defaultId != MaoHtbQdiscObj.INVALID_INT) {
+            commandTail.append("default " + defaultId + " ");
+        }
 
         return true;
     }
 
+    private boolean dealQdiscFifo(MaoQosObj qosObj, StringBuilder commandTail) {
+
+        MaoFifoQdiscObj maoFifoQdiscObj = (MaoFifoQdiscObj) qosObj;
+
+
+        String parent = maoFifoQdiscObj.getParentId();
+        if(parent.equals(MaoQosObj.ROOT_NAME)){
+            commandTail.append(MaoQosObj.ROOT_NAME + " ");
+        }else {
+            commandTail.append("parent " + parent + " ");
+        }
+
+
+        String handle = maoFifoQdiscObj.getHandleOrClassId();
+        commandTail.append("handle " + handle + " ");
+
+        MaoFifoQdiscObj.FifoType fifoType = maoFifoQdiscObj.getFifoType();
+        if (fifoType == MaoFifoQdiscObj.FifoType.PACKET_FIFO) {
+            commandTail.append("pfifo ");
+        } else if (fifoType == MaoFifoQdiscObj.FifoType.BYTE_FIFO) {
+            commandTail.append("bfifo ");
+        } else {
+            return false;
+        }
+
+
+        int limit = maoFifoQdiscObj.getLimit();
+        if(limit != MaoQosObj.INVALID_INT) {
+            commandTail.append("limit " + limit + " ");
+        }
+
+        return true;
+    }
+
+    private boolean dealQdiscSfq(MaoQosObj qosObj, StringBuilder commandTail) {
+
+        MaoSfqQdiscObj maoSfqQdiscObj = (MaoSfqQdiscObj) qosObj;
+
+
+        String parent = maoSfqQdiscObj.getParentId();
+        if(parent.equals(MaoQosObj.ROOT_NAME)){
+            commandTail.append(MaoQosObj.ROOT_NAME + " ");
+        }else {
+            commandTail.append("parent " + parent + " ");
+        }
+
+
+        String handle = maoSfqQdiscObj.getHandleOrClassId();
+        commandTail.append("handle " + handle + " ");
+
+
+        commandTail.append("sfq ");
+
+
+        int perturb = maoSfqQdiscObj.getPerturb();
+        if(perturb != MaoQosObj.INVALID_INT) {
+            commandTail.append("perturb " + perturb + " ");
+        }
+
+        return true;
+    }
+
+    private boolean dealQdiscTbf(MaoQosObj qosObj, StringBuilder commandTail) {
+
+        MaoTbfQdiscObj maoTbfQdiscObj = (MaoTbfQdiscObj) qosObj;
+
+
+        String parent = maoTbfQdiscObj.getParentId();
+        if(parent.equals(MaoQosObj.ROOT_NAME)){
+            commandTail.append(MaoQosObj.ROOT_NAME + " ");
+        }else {
+            commandTail.append("parent " + parent + " ");
+        }
+
+
+        String handle = maoTbfQdiscObj.getHandleOrClassId();
+        commandTail.append("handle " + handle + " ");
+
+
+        commandTail.append("tbf ");
+
+
+        long rate = maoTbfQdiscObj.getRate();
+        String rateUnit = maoTbfQdiscObj.getRateUnit();
+        commandTail.append("rate " + rate + rateUnit + " ");
+
+        long burst = maoTbfQdiscObj.getBurst();
+        String burstUnit = maoTbfQdiscObj.getBurstUnit();
+        commandTail.append("burst " + burst + burstUnit + " ");
+
+        long latency = maoTbfQdiscObj.getLatency();
+        if (latency != MaoQosObj.INVALID_INT) {
+
+            String latencyUnit = maoTbfQdiscObj.getLatencyUnit();
+            commandTail.append("latency " + latency + latencyUnit + " ");
+        }
+
+        long limit = maoTbfQdiscObj.getLimit();
+        if (limit != MaoQosObj.INVALID_INT) {
+
+            String limitUnit = maoTbfQdiscObj.getLimitUnit();
+            commandTail.append("limit " + limit + limitUnit + " ");
+        }
+
+        return true;
+    }
 
     private boolean dealClass(MaoQosObj qosObj, StringBuilder commandTail) {
 
