@@ -167,6 +167,9 @@ public class MaoQosManager implements MaoQosService {
         String handle = maoHtbQdiscObj.getHandleOrClassId();
         commandTail.append("handle " + handle + " ");
 
+        commandTail.append("htb ");
+
+
         int defaultId = maoHtbQdiscObj.getDefaultId();
         commandTail.append("default " + defaultId + " ");
 

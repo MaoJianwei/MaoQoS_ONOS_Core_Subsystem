@@ -170,7 +170,7 @@ public final class DeviceElement {
         }
 
         portMap.clear();
-        log.error("{} clear ports!  when {}", device.id(), stateMachine.get());
+        log.info("{} clear ports!  when {}", device.id(), stateMachine.get());
 
         stateMachine.set(State.FINISH);
     }

@@ -548,14 +548,15 @@ public class MaoPipelineManager implements MaoPipelineService {
 
                     ByteBuffer buf = ByteBuffer.allocate(cmd.length());
                     buf.put(cmd.getBytes());
+                    buf.flip();
 
                     log.info("SendCallable, Get cmd and buf ready!", appId.id());
 
                     try {
 
                         log.info("SendCallable, send cmd...", appId.id());
-                        socketChannel.write(buf);
-                        log.debug("SendCallable, send cmd OK!", appId.id());
+                        int ret = socketChannel.write(buf);
+                        log.info("SendCallable, send cmd OK!", appId.id());
 
                     } catch (IOException e) {
                         e.printStackTrace();
