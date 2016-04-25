@@ -485,7 +485,12 @@ public class MaoPipelineManager implements MaoPipelineService {
      */
     private class SendCallable implements Callable {
 
-        final int QUEUE_POLL_TIMEOUT = 500;
+        private static final int QUEUE_POLL_TIMEOUT = 500;
+        private static final int QUEUE_REPUSH_DELAY = 100;
+        private static final String DEVICE_ELEMENT_NOT_READY = "DE not ready";
+        private static final String DEVICE_PORT_NOT_READY = "PORT not ready";
+
+
         AtomicBoolean initReady;
 
 
@@ -522,17 +527,13 @@ public class MaoPipelineManager implements MaoPipelineService {
                     log.info("SendCallable, Get a Policy!", appId.id());
 
                     //FIXME - below is for test
-                    Object objDeviceElement = null;
-                    do {
-                        objDeviceElement = deviceElementMap.getOrDefault(policy.getDeviceId(), null);
-                    }while(objDeviceElement == null);
+                    Object objDeviceElement = deviceElementMap.getOrDefault(policy.getDeviceId(), null);
 
                     if(objDeviceElement == null){ // TODO - put Policy back for ONOS wait, if nessesary, add countTimeout
-                        if(pushQosPolicy(policy)){
-                            log.warn("repush policy success");
-                        }else{
-                            log.error("repush policy fail !!!");
-                        }
+
+                        log.warn("DeviceElement is not existed !");
+
+                        rePushPolicy(policy);
                         continue;
                     }
                     DeviceElement deviceElement = (DeviceElement) objDeviceElement;
@@ -542,8 +543,9 @@ public class MaoPipelineManager implements MaoPipelineService {
                     log.info("SendCallable, Get socket channel!", appId.id());
 
                     String cmd = encapsulate(policy);
-                    if(cmd.equals("")){
-                        continue;//policy is not good, or DeviceElement is not ready.
+                    if(cmd.equals(DEVICE_PORT_NOT_READY) || cmd.equals(DEVICE_ELEMENT_NOT_READY)){
+                        rePushPolicy(policy);
+                        continue;
                     }
 
                     ByteBuffer buf = ByteBuffer.allocate(cmd.length());
@@ -553,6 +555,7 @@ public class MaoPipelineManager implements MaoPipelineService {
                     log.info("SendCallable, Get cmd and buf ready!", appId.id());
 
                     try {
+
 
                         log.info("SendCallable, send cmd...", appId.id());
                         int ret = socketChannel.write(buf);
@@ -585,15 +588,28 @@ public class MaoPipelineManager implements MaoPipelineService {
             initReady.set(false);
         }
 
+        private void rePushPolicy(MaoQosPolicy maoQosPolicy) throws InterruptedException{
+            if(pushQosPolicy(maoQosPolicy)){
+                log.warn("repush policy success");
+                Thread.sleep(QUEUE_REPUSH_DELAY);
+            }else{
+                log.error("repush policy fail !!!");
+            }
+        }
+
         private String encapsulate(MaoQosPolicy policy){
 
             DeviceElement deviceElement = deviceElementMap.getOrDefault(policy.getDeviceId(), null);
             if(deviceElement == null){
-                return "";
+
+                log.warn("DeviceElement is not existed !");
+                return DEVICE_ELEMENT_NOT_READY;
             }
             String portName = deviceElement.getPortName(policy.getDeviceIntfNumber());
             if(portName.equals("")){
-                return "";
+
+                log.warn("DeviceElement_Port is not ready !");
+                return DEVICE_PORT_NOT_READY;
             }
 
             StringBuilder cmdBuilder = new StringBuilder();
