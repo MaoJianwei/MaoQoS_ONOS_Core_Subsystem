@@ -24,7 +24,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>onos-app-Mao-QoS</artifactId>
+    <artifactId>onos-app-mao-qos</artifactId>
     <packaging>bundle</packaging>
 
     <description>Mao QoS Controller</description>
@@ -33,7 +33,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <onos.version>1.6.0-SNAPSHOT</onos.version>
-        <onos.app.name>onos.app.Mao.QoS</onos.app.name>
+        <onos.app.name>onos.app.mao.qos</onos.app.name>
         <onos.app.version>1.0.0-SNAPSHOT</onos.app.version>
         <onos.app.title>Mao QoS Controller</onos.app.title>
         <onos.app.origin>BigMao Radio Station</onos.app.origin>
@@ -101,6 +101,11 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <version>3.0.1</version>
                 <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Export-Package>org.onosproject.mao.qos.*</Export-Package>
+                    </instructions>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

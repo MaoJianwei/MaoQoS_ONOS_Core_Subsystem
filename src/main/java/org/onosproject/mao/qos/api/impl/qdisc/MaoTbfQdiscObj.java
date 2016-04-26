@@ -59,6 +59,9 @@ public class MaoTbfQdiscObj extends MaoQosQdiscObj {
         return limitUnit;
     }
 
+    public static MaoTbfQdiscObj.Builder builder(){
+        return new Builder();
+    }
 
     public static final class Builder extends MaoQosQdiscObj.Builder<MaoTbfQdiscObj.Builder> {
 
@@ -79,22 +82,22 @@ public class MaoTbfQdiscObj extends MaoQosQdiscObj {
             this.limit = INVALID_INT;
         }
 
-        public Builder setRate(int rate, String rateUnit){
+        public Builder rate(int rate, String rateUnit){
             this.rate = rate;
             this.rateUnit = rateUnit;
             return this;
         }
-        public Builder setBurst(int burst, String burstUnit){
+        public Builder burst(int burst, String burstUnit){
             this.burst = burst;
             this.burstUnit = burstUnit;
             return this;
         }
-        public Builder setLatency(int latency, String latencyUnit){
+        public Builder latency(int latency, String latencyUnit){
             this.latency = latency;
             this.latencyUnit = latencyUnit;
             return this;
         }
-        public Builder setLimit(int limit, String limitUnit){
+        public Builder limit(int limit, String limitUnit){
             this.limit = limit;
             this.limitUnit = limitUnit;
             return this;

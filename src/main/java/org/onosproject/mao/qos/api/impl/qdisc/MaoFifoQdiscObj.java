@@ -19,6 +19,9 @@ public class MaoFifoQdiscObj extends MaoQosQdiscObj {
     public FifoType getFifoType(){return this.fifoType;}
     public int getLimit(){return this.limit;}
 
+    public static MaoFifoQdiscObj.Builder builder(){
+        return new Builder();
+    }
 
     public static final class Builder extends MaoQosQdiscObj.Builder<MaoFifoQdiscObj.Builder> {
 

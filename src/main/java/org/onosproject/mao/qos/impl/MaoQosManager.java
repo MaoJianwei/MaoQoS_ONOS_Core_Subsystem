@@ -150,6 +150,12 @@ public class MaoQosManager implements MaoQosService {
             case FIFO:
                 return dealQdiscFifo(qosObj, commandTail);
 
+            case SFQ:
+                return dealQdiscSfq(qosObj, commandTail);
+
+            case TBF:
+                return dealQdiscTbf(qosObj, commandTail);
+
             default:
                 log.warn("not handle scheduleType");
         }
@@ -297,6 +303,7 @@ public class MaoQosManager implements MaoQosService {
 
             case HTB:
                 return dealClassHtb(qosObj, commandTail);
+
             default:
                 log.warn("not handle scheduleType");
         }

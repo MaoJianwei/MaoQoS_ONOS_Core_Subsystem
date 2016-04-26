@@ -13,6 +13,9 @@ public class MaoSfqQdiscObj extends MaoQosQdiscObj {
 
     public int getPerturb(){return this.perturb;}
 
+    public static MaoSfqQdiscObj.Builder builder(){
+        return new Builder();
+    }
 
     public static final class Builder extends MaoQosQdiscObj.Builder<MaoSfqQdiscObj.Builder> {
 
