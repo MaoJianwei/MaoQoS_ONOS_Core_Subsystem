@@ -66,7 +66,8 @@ public abstract class MaoQosObj {
     public enum OperateType {
         NULL,
         ADD,
-        DELETE
+        DELETE,
+        CHANGE
     }
 
 
@@ -204,6 +205,11 @@ public abstract class MaoQosObj {
 
         public SubBuilderClass delete() {
             this.operateType = OperateType.DELETE;
+            return (SubBuilderClass)this;
+        }
+
+        public SubBuilderClass change() {
+            this.operateType = OperateType.CHANGE;
             return (SubBuilderClass)this;
         }
 

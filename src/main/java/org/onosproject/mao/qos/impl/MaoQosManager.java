@@ -112,6 +112,9 @@ public class MaoQosManager implements MaoQosService {
         } else if (qosObj.getOperateType() == MaoQosObj.OperateType.DELETE) {
 
             commandHead.append("delete ");
+        } else if (qosObj.getOperateType() == MaoQosObj.OperateType.CHANGE){
+
+            commandHead.append("change ");
         } else {
 
             log.warn("invalid operation");
