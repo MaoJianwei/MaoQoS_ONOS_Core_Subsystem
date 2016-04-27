@@ -116,6 +116,7 @@ public abstract class MaoQosObj {
             return false;
         }
 
+        
         //FIXME - attention -  not all need parent and handleOrClassId
 
         return true;
