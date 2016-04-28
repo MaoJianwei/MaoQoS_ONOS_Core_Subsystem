@@ -8,9 +8,9 @@ import org.onosproject.mao.qos.api.intf.MaoQosQdiscObj;
 public class MaoTbfQdiscObj extends MaoQosQdiscObj {
 
     private long rate;
-    private String rateUnit;
+    private RATE_UNIT rateUnit;
     private long burst;
-    private String burstUnit;
+    private SIZE_UNIT burstUnit;
     private long latency;
     private String latencyUnit;
     private long limit;
@@ -37,13 +37,13 @@ public class MaoTbfQdiscObj extends MaoQosQdiscObj {
     public long getRate(){
         return rate;
     }
-    public String getRateUnit(){
+    public RATE_UNIT getRateUnit(){
         return rateUnit;
     }
     public long getBurst(){
         return burst;
     }
-    public String getBurstUnit(){
+    public SIZE_UNIT getBurstUnit(){
         return burstUnit;
     }
     public long getLatency(){
@@ -66,9 +66,9 @@ public class MaoTbfQdiscObj extends MaoQosQdiscObj {
     public static final class Builder extends MaoQosQdiscObj.Builder<MaoTbfQdiscObj.Builder> {
 
         private long rate;
-        private String rateUnit;
+        private RATE_UNIT rateUnit;
         private long burst;
-        private String burstUnit;
+        private SIZE_UNIT burstUnit;
         private long latency;
         private String latencyUnit;
         private long limit;
@@ -82,12 +82,12 @@ public class MaoTbfQdiscObj extends MaoQosQdiscObj {
             this.limit = INVALID_INT;
         }
 
-        public Builder rate(int rate, String rateUnit){
+        public Builder rate(int rate, RATE_UNIT rateUnit){
             this.rate = rate;
             this.rateUnit = rateUnit;
             return this;
         }
-        public Builder burst(int burst, String burstUnit){
+        public Builder burst(int burst, SIZE_UNIT burstUnit){
             this.burst = burst;
             this.burstUnit = burstUnit;
             return this;

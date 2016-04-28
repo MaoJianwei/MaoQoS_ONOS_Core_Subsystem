@@ -1,6 +1,8 @@
 package org.onosproject.mao.qos.api.intf;
 
 import org.onosproject.net.DeviceId;
+import org.onosproject.net.flow.DefaultFlowRule;
+import org.onosproject.net.flow.FlowRuleService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,28 +27,72 @@ public abstract class MaoQosObj {
     };
 
 
-    public static final String RATE_BIT = "bit";
-    public static final String RATE_KBIT = "kbit";
-    public static final String RATE_MBIT = "mbit";
-    public static final String RATE_GBIT = "gbit";
-    public static final String RATE_TBIT = "tbit";
-
-    public static final String RATE_BYTE = "bps";
-    public static final String RATE_KBYTE = "kbps";
-    public static final String RATE_MBYTE = "mbps";
-    public static final String RATE_GBYTE = "gbps";
-    public static final String RATE_TBYTE = "tbps";
-
-
-    public static final String SIZE_KBIT = "kbit";
-    public static final String SIZE_MBIT = "mbit";
-    public static final String SIZE_GBIT = "gbit";
+//    public static final String RATE_BIT = "bit";
+//    public static final String RATE_KBIT = "kbit";
+//    public static final String RATE_MBIT = "mbit";
+//    public static final String RATE_GBIT = "gbit";
+//    public static final String RATE_TBIT = "tbit";
+//
+//    public static final String RATE_BYTE = "bps";
+//    public static final String RATE_KBYTE = "kbps";
+//    public static final String RATE_MBYTE = "mbps";
+//    public static final String RATE_GBYTE = "gbps";
+//    public static final String RATE_TBYTE = "tbps";
 
 
-    public static final String SIZE_BYTE = "b";
-    public static final String SIZE_KBYTE = "k";
-    public static final String SIZE_MBYTE = "m";
-    public static final String SIZE_GBYTE = "g";
+
+    public enum RATE_UNIT{
+
+        RATE_BIT("bit"),
+        RATE_KBIT("kbit"),
+        RATE_MBIT("mbit"),
+        RATE_GBIT("gbit"),
+        RATE_TBIT("tbit"),
+
+        RATE_BYTE("bps"),
+        RATE_KBYTE("kbps"),
+        RATE_MBYTE("mbps"),
+        RATE_GBYTE("gbps"),
+        RATE_TBYTE("tbps");
+
+
+        private final String cmdStr;
+        RATE_UNIT(String cmdStr){
+            this.cmdStr = cmdStr;
+        }
+        public String getCmdStr(){return cmdStr;}
+    }
+
+
+//    public static final String SIZE_KBIT = "kbit";
+//    public static final String SIZE_MBIT = "mbit";
+//    public static final String SIZE_GBIT = "gbit";
+//
+//
+//    public static final String SIZE_BYTE = "b";
+//    public static final String SIZE_KBYTE = "k";
+//    public static final String SIZE_MBYTE = "m";
+//    public static final String SIZE_GBYTE = "g";
+
+
+    public enum SIZE_UNIT{
+
+        SIZE_KBIT("kbit"),
+        SIZE_MBIT("mbit"),
+        SIZE_GBIT("gbit"),
+
+        SIZE_BYTE("b"),
+        SIZE_KBYTE("k"),
+        SIZE_MBYTE("m"),
+        SIZE_GBYTE("g");
+
+
+        private final String cmdStr;
+        SIZE_UNIT(String cmdStr){
+            this.cmdStr = cmdStr;
+        }
+        public String getCmdStr(){return cmdStr;}
+    }
 
 
     public enum ObjType {

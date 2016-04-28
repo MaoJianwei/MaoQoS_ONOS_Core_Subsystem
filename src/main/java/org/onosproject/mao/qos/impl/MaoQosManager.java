@@ -276,11 +276,11 @@ public class MaoQosManager implements MaoQosService {
 
 
         long rate = maoTbfQdiscObj.getRate();
-        String rateUnit = maoTbfQdiscObj.getRateUnit();
+        String rateUnit = maoTbfQdiscObj.getRateUnit().getCmdStr();
         commandTail.append("rate " + rate + rateUnit + " ");
 
         long burst = maoTbfQdiscObj.getBurst();
-        String burstUnit = maoTbfQdiscObj.getBurstUnit();
+        String burstUnit = maoTbfQdiscObj.getBurstUnit().getCmdStr();
         commandTail.append("burst " + burst + burstUnit + " ");
 
         long latency = maoTbfQdiscObj.getLatency();
@@ -329,28 +329,28 @@ public class MaoQosManager implements MaoQosService {
 
         long rate = maoHtbClassObj.getRate();
         if (rate != MaoQosObj.INVALID_INT) {
-            String rateUnit = maoHtbClassObj.getRateUnit();
+            String rateUnit = maoHtbClassObj.getRateUnit().getCmdStr();
             commandTail.append("rate " + rate + rateUnit + " ");
         }
 
         long ceil = maoHtbClassObj.getCeil();
         if (ceil != MaoQosObj.INVALID_INT) {
 
-            String ceilUnit = maoHtbClassObj.getCeilUnit();
+            String ceilUnit = maoHtbClassObj.getCeilUnit().getCmdStr();
             commandTail.append("ceil " + ceil + ceilUnit + " ");
         }
 
         long burst = maoHtbClassObj.getBurst();
         if (burst != MaoQosObj.INVALID_INT) {
 
-            String burstUnit = maoHtbClassObj.getBurstUnit();
+            String burstUnit = maoHtbClassObj.getBurstUnit().getCmdStr();
             commandTail.append("burst " + burst + burstUnit + " ");
         }
 
         long cburst = maoHtbClassObj.getCburst();
         if (cburst != MaoQosObj.INVALID_INT) {
 
-            String cburstUnit = maoHtbClassObj.getCburstUnit();
+            String cburstUnit = maoHtbClassObj.getCburstUnit().getCmdStr();
             commandTail.append("cburst " + cburst + cburstUnit + " ");
         }
 

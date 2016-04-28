@@ -14,13 +14,13 @@ import org.onosproject.net.flow.DefaultTrafficSelector;
 public class MaoHtbClassObj extends MaoQosClassObj {
 
     private long rate;
-    private String rateUnit;
+    private RATE_UNIT rateUnit;
     private long ceil;
-    private String ceilUnit;
+    private RATE_UNIT ceilUnit;
     private long burst;
-    private String burstUnit;
+    private SIZE_UNIT burstUnit;
     private long cburst;
-    private String cburstUnit;
+    private SIZE_UNIT cburstUnit;
     private int priority;
 
 
@@ -62,25 +62,25 @@ public class MaoHtbClassObj extends MaoQosClassObj {
     public long getRate(){
         return rate;
     }
-    public String getRateUnit(){
+    public RATE_UNIT getRateUnit(){
         return rateUnit;
     }
     public long getCeil(){
         return ceil;
     }
-    public String getCeilUnit(){
+    public RATE_UNIT getCeilUnit(){
         return ceilUnit;
     }
     public long getBurst(){
         return burst;
     }
-    public String getBurstUnit(){
+    public SIZE_UNIT getBurstUnit(){
         return burstUnit;
     }
     public long getCburst(){
         return cburst;
     }
-    public String getCburstUnit(){
+    public SIZE_UNIT getCburstUnit(){
         return cburstUnit;
     }
     public int getPriority(){
@@ -96,13 +96,13 @@ public class MaoHtbClassObj extends MaoQosClassObj {
     public static final class Builder extends MaoQosClassObj.Builder<MaoHtbClassObj.Builder> {
 
         private long rate;
-        private String rateUnit;
+        private RATE_UNIT rateUnit;
         private long ceil;
-        private String ceilUnit;
+        private RATE_UNIT ceilUnit;
         private long burst;
-        private String burstUnit;
+        private SIZE_UNIT burstUnit;
         private long cburst;
-        private String cburstUnit;
+        private SIZE_UNIT cburstUnit;
         private int priority;
 
         private Builder(){
@@ -115,22 +115,22 @@ public class MaoHtbClassObj extends MaoQosClassObj {
             priority = INVALID_INT;
         }
 
-        public Builder rate(long rate, String rateUnit){
+        public Builder rate(long rate, RATE_UNIT rateUnit){
             this.rate = rate;
             this.rateUnit = rateUnit;
             return this;
         }
-        public Builder ceil(long ceil, String ceilUnit){
+        public Builder ceil(long ceil, RATE_UNIT ceilUnit){
             this.ceil = ceil;
             this.ceilUnit = ceilUnit;
             return this;
         }
-        public Builder burst(long burst, String burstUnit){
+        public Builder burst(long burst, SIZE_UNIT burstUnit){
             this.burst = burst;
             this.burstUnit = burstUnit;
             return this;
         }
-        public Builder cburst(long cburst, String cburstUnit){
+        public Builder cburst(long cburst, SIZE_UNIT cburstUnit){
             this.cburst = cburst;
             this.cburstUnit = cburstUnit;
             return this;
