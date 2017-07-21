@@ -17,7 +17,7 @@
 
     <command-bundle xmlns="http://karaf.apache.org/xmlns/shell/v1.1.0">
         <command>
-            <action class="org.onosproject.mao.qos.cli.Debug"/>
+            <action class="com.maojianwei.maoqos.cli.Debug"/>
         </command>
     </command-bundle>
 </blueprint>

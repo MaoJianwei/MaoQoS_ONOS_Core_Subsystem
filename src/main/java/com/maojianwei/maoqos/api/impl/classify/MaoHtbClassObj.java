@@ -1,7 +1,6 @@
-package org.onosproject.mao.qos.api.impl.classify;
+package com.maojianwei.maoqos.api.impl.classify;
 
-import org.onosproject.mao.qos.api.intf.MaoQosClassObj;
-import org.onosproject.mao.qos.api.intf.MaoQosObj;
+import com.maojianwei.maoqos.api.intf.MaoQosClassObj;
 import org.onosproject.net.DeviceId;
 import org.onosproject.net.device.DeviceProviderService;
 import org.onosproject.net.device.DeviceService;

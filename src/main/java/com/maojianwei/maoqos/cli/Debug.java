@@ -13,16 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.onosproject.mao.qos.cli;
+package com.maojianwei.maoqos.cli;
 
 import org.apache.karaf.shell.commands.Command;
 import org.onosproject.cli.AbstractShellCommand;
-import org.onosproject.mao.qos.base.DeviceElement;
-import org.onosproject.mao.qos.intf.MaoPipelineService;
+import com.maojianwei.maoqos.base.DeviceElement;
+import com.maojianwei.maoqos.intf.MaoPipelineService;
 import org.onosproject.net.DeviceId;
 
 import java.util.Map;
-import java.util.concurrent.ThreadPoolExecutor;
 
 
 @Command(scope = "onos", name = "qos-debug",

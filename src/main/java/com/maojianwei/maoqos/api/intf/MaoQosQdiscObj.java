@@ -1,4 +1,4 @@
-package org.onosproject.mao.qos.api.intf;
+package com.maojianwei.maoqos.api.intf;
 
 /**
  * Created by mao on 4/19/16.

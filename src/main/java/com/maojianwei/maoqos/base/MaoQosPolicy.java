@@ -1,4 +1,4 @@
-package org.onosproject.mao.qos.base;
+package com.maojianwei.maoqos.base;
 
 import org.onosproject.net.Device;
 import org.onosproject.net.DeviceId;

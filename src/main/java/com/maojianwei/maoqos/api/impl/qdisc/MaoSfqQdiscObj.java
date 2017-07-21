@@ -1,7 +1,6 @@
-package org.onosproject.mao.qos.api.impl.qdisc;
+package com.maojianwei.maoqos.api.impl.qdisc;
 
-import org.onosproject.mao.qos.api.intf.MaoQosObj;
-import org.onosproject.mao.qos.api.intf.MaoQosQdiscObj;
+import com.maojianwei.maoqos.api.intf.MaoQosQdiscObj;
 
 /**
  * Created by mao on 4/25/16.

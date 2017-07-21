@@ -1,7 +1,7 @@
-package org.onosproject.mao.qos.intf;
+package com.maojianwei.maoqos.intf;
 
-import org.onosproject.mao.qos.base.DeviceElement;
-import org.onosproject.mao.qos.base.MaoQosPolicy;
+import com.maojianwei.maoqos.base.MaoQosPolicy;
+import com.maojianwei.maoqos.base.DeviceElement;
 import org.onosproject.net.DeviceId;
 
 import java.util.Map;

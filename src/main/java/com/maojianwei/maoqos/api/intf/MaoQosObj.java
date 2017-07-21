@@ -1,4 +1,4 @@
-package org.onosproject.mao.qos.api.intf;
+package com.maojianwei.maoqos.api.intf;
 
 import org.onosproject.net.DeviceId;
 import org.onosproject.net.flow.DefaultFlowRule;

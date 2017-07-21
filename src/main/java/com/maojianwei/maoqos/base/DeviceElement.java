@@ -1,6 +1,6 @@
-package org.onosproject.mao.qos.base;
+package com.maojianwei.maoqos.base;
 
-import org.onosproject.mao.qos.impl.MaoPipelineManager;
+import com.maojianwei.maoqos.impl.MaoPipelineManager;
 import org.onosproject.net.Device;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,12 +12,10 @@ import java.nio.channels.Channels;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;

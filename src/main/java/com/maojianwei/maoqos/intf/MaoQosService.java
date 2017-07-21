@@ -1,6 +1,6 @@
-package org.onosproject.mao.qos.intf;
+package com.maojianwei.maoqos.intf;
 
-import org.onosproject.mao.qos.api.intf.MaoQosObj;
+import com.maojianwei.maoqos.api.intf.MaoQosObj;
 
 /**
  * Created by mao on 4/1/16.
