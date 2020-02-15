@@ -197,6 +197,16 @@
                 </executions>
             </plugin>
 
+           <!-- disable checkstyle-->
+           <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-checkstyle-plugin</artifactId>
+              <version>2.17</version>
+              <configuration>
+                  <skip>true</skip>
+              </configuration>
+           </plugin>
+          
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -224,6 +234,8 @@
                     </execution>
                 </executions>
             </plugin>
+          
+            <!-- comment for Travis CI, please uncomment on demand
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
@@ -238,6 +250,7 @@
                     </execution>
                 </executions>
             </plugin>
+            -->
         </plugins>
     </build>
 
