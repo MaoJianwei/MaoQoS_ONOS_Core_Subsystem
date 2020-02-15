@@ -1,4 +1,5 @@
 # MaoQoS_ONOS_Core_Subsystem
+[![Build Status](https://travis-ci.org/MaoJianwei/MaoQoS_ONOS_Core_Subsystem.svg?branch=master)](https://travis-ci.org/MaoJianwei/MaoQoS_ONOS_Core_Subsystem)
 
 MaoQoS is a extended funtion to config queue resources of Open vSwitch(OVS) device, in a dynamical and fine-grained way.
 
